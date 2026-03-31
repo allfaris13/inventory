@@ -1,0 +1,64 @@
+@import "tailwindcss";
+@import "./styles/theme.css";
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
+:root {
+  /* Keep custom variables that don't conflict */
+  --neon-blue: #00f3ff;
+  --neon-blue-dim: rgba(0, 243, 255, 0.2);
+  --neon-purple: #b537f2;
+  --neon-green: #00ff9d;
+  --neon-red: #ff2a6d;
+  --neon-yellow: #fce205;
+  --glass-blur: blur(16px);
+  --transition-speed: 0.3s;
+}
+
+@layer utilities {
+  .glass-panel {
+    background: rgba(16, 18, 27, 0.6);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid rgba(0, 243, 255, 0.15);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  }
+
+  .text-gradient {
+    background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-glow {
+    text-shadow: 0 0 10px var(--neon-blue-dim), 0 0 20px var(--neon-blue-dim);
+  }
+}
+
+/* Animations */
+@keyframes pulseGlow {
+  0% { box-shadow: 0 0 5px var(--neon-blue-dim); }
+  50% { box-shadow: 0 0 15px rgba(0, 243, 255, 0.4); }
+  100% { box-shadow: 0 0 5px var(--neon-blue-dim); }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2s infinite;
+}
+
+/* Custom Scrollbar for Cyberpunk look */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #040406;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 243, 255, 0.3);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--neon-blue);
+}

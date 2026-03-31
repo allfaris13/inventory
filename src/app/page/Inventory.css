@@ -1,0 +1,17 @@
+.inventory-wrapper {
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Custom table adjustments if needed */
+.inventory-wrapper table {
+  font-family: 'Inter', sans-serif;
+}
+
+.inventory-wrapper th {
+  font-family: 'Rajdhani', sans-serif;
+}

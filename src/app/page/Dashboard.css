@@ -1,0 +1,22 @@
+.dashboard-wrapper {
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.recharts-cartesian-grid-horizontal line {
+  stroke: rgba(255, 255, 255, 0.05);
+}
+
+.recharts-cartesian-axis-tick text {
+  font-family: 'Rajdhani', sans-serif;
+  letter-spacing: 0.5px;
+}
+
+/* Override chart tooltip to match theme */
+.recharts-tooltip-wrapper {
+  outline: none;
+}
