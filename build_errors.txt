@@ -1,9 +1,0 @@
-
-> inventory@0.0.0 build
-> tsc -b && vite build
-
-src/app/components/TopBar.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
-src/app/page/ComponentDetail.tsx(44,38): error TS2352: Conversion of type 'string | undefined' to type '1' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
-  Type 'string' is not comparable to type '1'.
-src/app/page/Dashboard.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
-src/app/page/Inventory.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
