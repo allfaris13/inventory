@@ -27,22 +27,27 @@ type User struct {
 	FullName string `json:"full_name"`
 }
 
-// Fungsi konek DB yang lebih aman
 func connectDB() (*sql.DB, error) {
-	dbHost := os.Getenv("DB_HOST")
-	dbPort := os.Getenv("DB_PORT")
-	dbUser := os.Getenv("DB_USER")
-	dbPassword := os.Getenv("DB_PASSWORD")
-	dbName := os.Getenv("DB_NAME")
-	dbSSL := os.Getenv("DB_SSLMODE")
-
-	// Fallback SSL mode
-	if dbSSL == "" {
-		dbSSL = "require"
+	// Cek apakah ada POSTGRES_URL (khusus Vercel Postgres)
+	// Kalau nggak ada, pakai variabel standar (Local)
+	var psqlInfo string
+	
+	if os.Getenv("POSTGRES_URL") != "" {
+		// Menggunakan URL lengkap dari Vercel Postgres
+		psqlInfo = os.Getenv("POSTGRES_URL")
+	} else {
+		// Fallback ke variabel individual (untuk Lokal)
+		dbHost := os.Getenv("DB_HOST")
+		dbPort := os.Getenv("DB_PORT")
+		dbUser := os.Getenv("DB_USER")
+		dbPassword := os.Getenv("DB_PASSWORD")
+		dbName := os.Getenv("DB_NAME")
+		dbSSL := os.Getenv("DB_SSLMODE")
+		if dbSSL == "" { dbSSL = "require" }
+		
+		psqlInfo = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+			dbHost, dbPort, dbUser, dbPassword, dbName, dbSSL)
 	}
-
-	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		dbHost, dbPort, dbUser, dbPassword, dbName, dbSSL)
 
 	db, err := sql.Open("postgres", psqlInfo)
 	if err != nil {
@@ -58,52 +63,46 @@ func connectDB() (*sql.DB, error) {
 }
 
 func Handler(w http.ResponseWriter, r *http.Request) {
-	// Enable CORS
 	enableCors(&w)
-
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
 
-	// Selalu set content type di awal
 	w.Header().Set("Content-Type", "application/json")
 
 	switch r.URL.Path {
 	case "/api/ping":
-		fmt.Fprintf(w, `{"message": "pong from Vercel Go Serverless!"}`)
+		fmt.Fprintf(w, `{"message": "pong from Vercel Go Serverless (Postgres Ready!)"}`)
 
 	case "/api/login":
 		if r.Method != "POST" {
 			w.WriteHeader(http.StatusMethodNotAllowed)
-			fmt.Fprintf(w, `{"status": "error", "message": "Method not allowed"}`)
 			return
 		}
 
 		var req LoginRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, `{"status": "error", "message": "Review payload JSON kamu"}`)
 			return
 		}
 
 		db, err := connectDB()
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(w, `{"status": "error", "message": "Gagal konek database: %v"}`, err)
+			fmt.Fprintf(w, `{"status": "error", "message": "Gagal koneksi DB Cloud: %v"}`, err)
 			return
 		}
 		defer db.Close()
 
 		var user User
-		// Query password secara langsung (Note: Sangat disarankan pakai hashing kedepannya)
 		err = db.QueryRow("SELECT id, email, full_name FROM users WHERE email = $1 AND password = $2", 
 			req.Email, req.Password).Scan(&user.ID, &user.Email, &user.FullName)
 
 		if err != nil {
 			if err == sql.ErrNoRows {
 				w.WriteHeader(http.StatusUnauthorized)
-				fmt.Fprintf(w, `{"status": "error", "message": "Email atau password salah"}`)
+				fmt.Fprintf(w, `{"status": "error", "message": "Email atau password database salah"}`)
 			} else {
 				w.WriteHeader(http.StatusInternalServerError)
 				fmt.Fprintf(w, `{"status": "error", "message": "Query Error: %v"}`, err)
@@ -113,13 +112,13 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 
 		json.NewEncoder(w).Encode(LoginResponse{
 			Status:  "success",
-			Message: "Login berhasil",
+			Message: "Login berhasil di Cloud!",
 			User:    &user,
 		})
 
 	default:
 		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprintf(w, `{"error": "Path tidak ditemukan: %s"}`, r.URL.Path)
+		fmt.Fprintf(w, `{"error": "Endpoint tidak ditemukan"}`)
 	}
 }
 
