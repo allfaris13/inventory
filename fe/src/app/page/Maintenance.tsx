@@ -12,7 +12,7 @@ import {
   Wrench,
   ShieldCheck
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 
@@ -51,7 +51,33 @@ const maintenanceSchedule = [
 
 export function Maintenance() {
   const navigate = useNavigate();
-  const [tasks, setTasks] = useState(maintenanceSchedule);
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/maintenance')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          const adapted = data.map(item => ({
+            id: item.id,
+            component: item.asset,
+            type: item.task,
+            priority: item.priority || 'Rutin',
+            status: item.status || 'Dijadwalkan',
+            scheduledDate: new Date(item.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+            estimatedDuration: "2 jam",
+            assignedTo: "Tim Teknis A"
+          }));
+          setTasks(adapted);
+        }
+        setIsLoading(false);
+      })
+      .catch(err => {
+        console.error("Fetch error:", err);
+        setIsLoading(false);
+      });
+  }, []);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newTask, setNewTask] = useState({
     component: '',

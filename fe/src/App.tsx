@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { ThemeProvider } from './app/context/ThemeContext';
 import { RootLayout } from './app/components/layout/RootLayout';
 import { Dashboard } from './app/page/Dashboard';
@@ -16,13 +17,30 @@ import { ProfileSettings } from './app/components/profile/ProfileSettings';
 import { LoginPanel } from './app/components/login/LoginPanel';
 
 export default function App() {
-  const isAuthenticated = !!localStorage.getItem('user');
+  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('user'));
+
+  // Listen for storage changes (optional, but good for multi-tab)
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setIsAuthenticated(!!localStorage.getItem('user'));
+    };
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Check every time this component mounts or navigates
+    // (Simple way to sync since we're not using a full auth provider yet)
+    const interval = setInterval(handleStorageChange, 1000);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
 
   return (
     <ThemeProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/login" element={<LoginPanel />} />
+          <Route path="/login" element={!isAuthenticated ? <LoginPanel /> : <Navigate to="/dashboard" replace />} />
           
           <Route path="/" element={isAuthenticated ? <RootLayout /> : <Navigate to="/login" replace />}>
             <Route index element={<Navigate to="/dashboard" replace />} />

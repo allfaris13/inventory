@@ -90,6 +90,72 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func handleInventory(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w)
+	if r.Method != "GET" {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	rows, err := db.Query("SELECT id, name, category, status, stock, location FROM inventory")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"status": "error", "message": err.Error()})
+		return
+	}
+	defer rows.Close()
+
+	var list []map[string]interface{}
+	for rows.Next() {
+		var id, stock int
+		var name, category, status, location string
+		rows.Scan(&id, &name, &category, &status, &stock, &location)
+		list = append(list, map[string]interface{}{
+			"id": id, "name": name, "category": category, "status": status, "stock": stock, "location": location,
+		})
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(list)
+}
+
+func handleMaintenance(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w)
+	if r.Method == "GET" {
+		rows, err := db.Query(`SELECT m.id, i.name as asset, m.task_name, m.schedule_date, m.status, m.priority 
+			FROM maintenance m JOIN inventory i ON m.inventory_id = i.id`)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+
+		var list []map[string]interface{}
+		for rows.Next() {
+			var id int
+			var asset, task, date, status, priority string
+			rows.Scan(&id, &asset, &task, &date, &status, &priority)
+			list = append(list, map[string]interface{}{
+				"id": id, "asset": asset, "task": task, "date": date, "status": status, "priority": priority,
+			})
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(list)
+	} else if r.Method == "POST" { // Reschedule
+		var req struct {
+			ID   int    `json:"id"`
+			Date string `json:"date"`
+		}
+		json.NewDecoder(r.Body).Decode(&req)
+		_, err := db.Exec("UPDATE maintenance SET schedule_date = $1 WHERE id = $2", req.Date, req.ID)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"status": "success"})
+	}
+}
+
 func main() {
 	initDB()
 	defer db.Close()
@@ -103,6 +169,8 @@ func main() {
 	})
 
 	mux.HandleFunc("/api/login", handleLogin)
+	mux.HandleFunc("/api/inventory", handleInventory)
+	mux.HandleFunc("/api/maintenance", handleMaintenance)
 
 	fmt.Println("Server backend berjalan di :8080...")
 	log.Fatal(http.ListenAndServe(":8080", mux))

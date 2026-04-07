@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -77,6 +77,28 @@ export function Inventory() {
   const [stockQuantity, setStockQuantity] = useState<number>(0);
   
   const navigate = useNavigate();
+
+  useEffect(() => {
+    fetch('/api/inventory')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          // Adapt DB fields to UI interface
+          const adapted = data.map(item => ({
+            sku: item.id.toString(),
+            name: item.name,
+            category: item.category,
+            stock: item.stock,
+            maxStock: 100, // DB doesn't have maxStock yet
+            condition: item.status || 'Baru',
+            location: item.location,
+            image: ''
+          }));
+          setItems(adapted);
+        }
+      })
+      .catch(err => console.error("Fetch error:", err));
+  }, []);
   
   const filtered = items.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 

@@ -30,18 +30,16 @@ type User struct {
 func connectDB() (*sql.DB, error) {
 	var psqlInfo string
 	
-	// Gunakan POSTGRES_URL atau DATABASE_URL (khusus Vercel/Neon)
 	if os.Getenv("POSTGRES_URL") != "" {
 		psqlInfo = os.Getenv("POSTGRES_URL")
 	} else if os.Getenv("DATABASE_URL") != "" {
 		psqlInfo = os.Getenv("DATABASE_URL")
 	} else if os.Getenv("DB_HOST") != "" {
-		// Fallback ke variabel individual (Lokal)
 		psqlInfo = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 			os.Getenv("DB_HOST"), os.Getenv("DB_PORT"), os.Getenv("DB_USER"),
 			os.Getenv("DB_PASSWORD"), os.Getenv("DB_NAME"), "disable")
 	} else {
-		return nil, fmt.Errorf("Variabel database (POSTGRES_URL, DATABASE_URL, atau DB_HOST) tidak ditemukan.")
+		return nil, fmt.Errorf("database configuration not found")
 	}
 
 	db, err := sql.Open("postgres", psqlInfo)
@@ -67,52 +65,97 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 
 	switch r.URL.Path {
 	case "/api/ping":
-		fmt.Fprintf(w, `{"message": "pong from Vercel Go Serverless (Cloud DB Ready!)"}`)
+		fmt.Fprintf(w, `{"message": "pong from Vercel Go Serverless"}`)
 
 	case "/api/login":
-		if r.Method != "POST" {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
+		handleVercelLogin(w, r)
 
-		var req LoginRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
+	case "/api/inventory":
+		handleVercelInventory(w, r)
 
-		db, err := connectDB()
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(w, `{"status": "error", "message": "Backend Error: %v"}`, err)
-			return
-		}
-		defer db.Close()
-
-		var user User
-		err = db.QueryRow("SELECT id, email, full_name FROM users WHERE email = $1 AND password = $2", 
-			req.Email, req.Password).Scan(&user.ID, &user.Email, &user.FullName)
-
-		if err != nil {
-			if err == sql.ErrNoRows {
-				w.WriteHeader(http.StatusUnauthorized)
-				fmt.Fprintf(w, `{"status": "error", "message": "Email atau password database Cloud salah"}`)
-			} else {
-				w.WriteHeader(http.StatusInternalServerError)
-				fmt.Fprintf(w, `{"status": "error", "message": "Query Error: %v"}`, err)
-			}
-			return
-		}
-
-		json.NewEncoder(w).Encode(LoginResponse{
-			Status:  "success",
-			Message: "Login berhasil di Cloud!",
-			User:    &user,
-		})
+	case "/api/maintenance":
+		handleVercelMaintenance(w, r)
 
 	default:
 		w.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(w, `{"error": "Endpoint tidak ditemukan"}`)
+	}
+}
+
+func handleVercelLogin(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	var req LoginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	db, err := connectDB()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+	var user User
+	err = db.QueryRow("SELECT id, email, full_name FROM users WHERE email = $1 AND password = $2", 
+		req.Email, req.Password).Scan(&user.ID, &user.Email, &user.FullName)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	json.NewEncoder(w).Encode(LoginResponse{Status: "success", Message: "Login berhasil", User: &user})
+}
+
+func handleVercelInventory(w http.ResponseWriter, r *http.Request) {
+	db, err := connectDB()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+	rows, err := db.Query("SELECT id, name, category, status, stock, location FROM inventory")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+	var list []map[string]interface{}
+	for rows.Next() {
+		var id, stock int
+		var name, category, status, location string
+		rows.Scan(&id, &name, &category, &status, &stock, &location)
+		list = append(list, map[string]interface{}{
+			"id": id, "name": name, "category": category, "status": status, "stock": stock, "location": location,
+		})
+	}
+	json.NewEncoder(w).Encode(list)
+}
+
+func handleVercelMaintenance(w http.ResponseWriter, r *http.Request) {
+	db, err := connectDB()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+	if r.Method == "GET" {
+		rows, err := db.Query(`SELECT m.id, i.name as asset, m.task_name, m.schedule_date, m.status, m.priority 
+			FROM maintenance m JOIN inventory i ON m.inventory_id = i.id`)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+		var list []map[string]interface{}
+		for rows.Next() {
+			var id int
+			var asset, task, date, status, priority string
+			rows.Scan(&id, &asset, &task, &date, &status, &priority)
+			list = append(list, map[string]interface{}{"id": id, "asset": asset, "task": task, "date": date, "status": status, "priority": priority})
+		}
+		json.NewEncoder(w).Encode(list)
 	}
 }
 

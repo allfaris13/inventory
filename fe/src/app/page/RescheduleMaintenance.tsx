@@ -8,6 +8,33 @@ export function RescheduleMaintenance() {
   const navigate = useNavigate();
   const [newDate, setNewDate] = useState("");
   const [newTime, setNewTime] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!newDate) {
+      alert("Pilih tanggal baru!");
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const response = await fetch('/api/maintenance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: Number(id), date: newDate })
+      });
+      if (response.ok) {
+        alert("Jadwal berhasil diperbarui!");
+        navigate("/maintenance");
+      } else {
+        alert("Gagal memperbarui jadwal.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error koneksi.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const taskName = id === "1" ? "Array Sensor Lidar - Zona A" : id === "2" ? "Kontroler Lengan Robot - Zona B" : "Modul Kamera Visual";
 
@@ -92,8 +119,12 @@ export function RescheduleMaintenance() {
             >
               Batalkan
             </button>
-            <button className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase text-[10px] tracking-widest h-14 shadow-lg shadow-indigo-500/20 active:scale-95 transition-all rounded-2xl">
-              Simpan Jadwal Baru
+            <button 
+              onClick={handleSave}
+              disabled={isSaving}
+              className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase text-[10px] tracking-widest h-14 shadow-lg shadow-indigo-500/20 active:scale-95 transition-all rounded-2xl disabled:opacity-50"
+            >
+              {isSaving ? "Menyimpan..." : "Simpan Jadwal Baru"}
             </button>
           </div>
         </div>
