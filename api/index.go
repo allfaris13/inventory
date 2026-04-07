@@ -28,25 +28,20 @@ type User struct {
 }
 
 func connectDB() (*sql.DB, error) {
-	// Cek apakah ada POSTGRES_URL (khusus Vercel Postgres)
-	// Kalau nggak ada, pakai variabel standar (Local)
 	var psqlInfo string
 	
+	// Gunakan POSTGRES_URL atau DATABASE_URL (khusus Vercel/Neon)
 	if os.Getenv("POSTGRES_URL") != "" {
-		// Menggunakan URL lengkap dari Vercel Postgres
 		psqlInfo = os.Getenv("POSTGRES_URL")
-	} else {
-		// Fallback ke variabel individual (untuk Lokal)
-		dbHost := os.Getenv("DB_HOST")
-		dbPort := os.Getenv("DB_PORT")
-		dbUser := os.Getenv("DB_USER")
-		dbPassword := os.Getenv("DB_PASSWORD")
-		dbName := os.Getenv("DB_NAME")
-		dbSSL := os.Getenv("DB_SSLMODE")
-		if dbSSL == "" { dbSSL = "require" }
-		
+	} else if os.Getenv("DATABASE_URL") != "" {
+		psqlInfo = os.Getenv("DATABASE_URL")
+	} else if os.Getenv("DB_HOST") != "" {
+		// Fallback ke variabel individual (Lokal)
 		psqlInfo = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-			dbHost, dbPort, dbUser, dbPassword, dbName, dbSSL)
+			os.Getenv("DB_HOST"), os.Getenv("DB_PORT"), os.Getenv("DB_USER"),
+			os.Getenv("DB_PASSWORD"), os.Getenv("DB_NAME"), "disable")
+	} else {
+		return nil, fmt.Errorf("Variabel database (POSTGRES_URL, DATABASE_URL, atau DB_HOST) tidak ditemukan.")
 	}
 
 	db, err := sql.Open("postgres", psqlInfo)
@@ -54,8 +49,7 @@ func connectDB() (*sql.DB, error) {
 		return nil, err
 	}
 
-	err = db.Ping()
-	if err != nil {
+	if err = db.Ping(); err != nil {
 		return nil, err
 	}
 
@@ -73,7 +67,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 
 	switch r.URL.Path {
 	case "/api/ping":
-		fmt.Fprintf(w, `{"message": "pong from Vercel Go Serverless (Postgres Ready!)"}`)
+		fmt.Fprintf(w, `{"message": "pong from Vercel Go Serverless (Cloud DB Ready!)"}`)
 
 	case "/api/login":
 		if r.Method != "POST" {
@@ -90,7 +84,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		db, err := connectDB()
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(w, `{"status": "error", "message": "Gagal koneksi DB Cloud: %v"}`, err)
+			fmt.Fprintf(w, `{"status": "error", "message": "Backend Error: %v"}`, err)
 			return
 		}
 		defer db.Close()
@@ -102,7 +96,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			if err == sql.ErrNoRows {
 				w.WriteHeader(http.StatusUnauthorized)
-				fmt.Fprintf(w, `{"status": "error", "message": "Email atau password database salah"}`)
+				fmt.Fprintf(w, `{"status": "error", "message": "Email atau password database Cloud salah"}`)
 			} else {
 				w.WriteHeader(http.StatusInternalServerError)
 				fmt.Fprintf(w, `{"status": "error", "message": "Query Error: %v"}`, err)
