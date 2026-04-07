@@ -16,38 +16,6 @@ import { useState, useEffect } from "react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 
-const maintenanceSchedule = [
-  {
-    id: 1,
-    component: "Array Sensor Lidar - Zona A",
-    type: "Kalibrasi Sensor",
-    priority: "Kritis",
-    status: "Tertunda",
-    scheduledDate: "2 April 2026",
-    estimatedDuration: "2 jam",
-    assignedTo: "Tim Teknis A",
-  },
-  {
-    id: 2,
-    component: "Kontroler Lengan Robot - Zona B",
-    type: "Pembaruan Firmware",
-    priority: "Kritis",
-    status: "Tertunda",
-    scheduledDate: "3 April 2026",
-    estimatedDuration: "4 jam",
-    assignedTo: "Tim Teknis B",
-  },
-  {
-    id: 3,
-    component: "Modul Kamera Visual",
-    type: "Pembersihan & Kalibrasi Lensa",
-    priority: "Rutin",
-    status: "Dijadwalkan",
-    scheduledDate: "5 April 2026",
-    estimatedDuration: "1.5 jam",
-    assignedTo: "Tim Teknis A",
-  }
-];
 
 export function Maintenance() {
   const navigate = useNavigate();
@@ -183,7 +151,12 @@ export function Maintenance() {
         </div>
 
         <div className="space-y-6">
-          {tasks.map((task) => (
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-20 bg-muted/10 rounded-3xl border-2 border-dashed border-border animate-pulse">
+               <div className="w-12 h-12 rounded-full border-4 border-indigo-500/20 border-t-indigo-500 animate-spin mb-4" />
+               <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">Menghubungkan ke Pusat Data...</p>
+            </div>
+          ) : tasks.map((task) => (
             <div
               key={task.id}
               className="p-7 bg-muted/20 rounded-3xl border border-border transition-all hover:bg-muted/30 hover:border-primary/30 group"
@@ -247,7 +220,7 @@ export function Maintenance() {
               </div>
             </div>
           ))}
-          {tasks.length === 0 && (
+          {!isLoading && tasks.length === 0 && (
             <div className="text-center py-20 border-2 border-dashed border-border rounded-3xl bg-muted/10">
               <Wrench size={40} className="mx-auto text-muted-foreground/30 mb-4" />
               <p className="text-muted-foreground font-black uppercase tracking-[0.3em] text-xs">Belum ada jadwal pemeliharaan</p>
