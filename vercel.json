@@ -1,0 +1,8 @@
+{
+  "buildCommand": "cd fe && npm install && npm run build",
+  "outputDirectory": "fe/dist",
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index.go" },
+    { "source": "/(.*)", "destination": "/fe/$1" }
+  ]
+}
