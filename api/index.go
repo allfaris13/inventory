@@ -2,81 +2,124 @@ package handler
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
-	"sync"
 
 	_ "github.com/lib/pq"
 )
 
-var (
-	db     *sql.DB
-	dbOnce sync.Once
-)
-
-// Fungsi untuk mendapatkan koneksi database (Singleton)
-func getDB() (*sql.DB, error) {
-	var err error
-	dbOnce.Do(func() {
-		dbHost := os.Getenv("DB_HOST")
-		dbPort := os.Getenv("DB_PORT")
-		dbUser := os.Getenv("DB_USER")
-		dbPassword := os.Getenv("DB_PASSWORD")
-		dbName := os.Getenv("DB_NAME")
-		dbSSL := os.Getenv("DB_SSLMODE")
-
-		psqlInfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-			dbHost, dbPort, dbUser, dbPassword, dbName, dbSSL)
-
-		db, err = sql.Open("postgres", psqlInfo)
-		if err != nil {
-			fmt.Printf("Gagal membuka koneksi ke database: %v\n", err)
-			return
-		}
-
-		err = db.Ping()
-		if err != nil {
-			fmt.Printf("Database tidak merespon (Ping gagal): %v\n", err)
-			return
-		}
-	})
-	return db, err
+type LoginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
-// Handler utama untuk menangani semua request ke /api/*
+type LoginResponse struct {
+	Status  string `json:"status"`
+	Message string `json:"message"`
+	User    *User  `json:"user,omitempty"`
+}
+
+type User struct {
+	ID       int    `json:"id"`
+	Email    string `json:"email"`
+	FullName string `json:"full_name"`
+}
+
+// Fungsi konek DB yang lebih aman
+func connectDB() (*sql.DB, error) {
+	dbHost := os.Getenv("DB_HOST")
+	dbPort := os.Getenv("DB_PORT")
+	dbUser := os.Getenv("DB_USER")
+	dbPassword := os.Getenv("DB_PASSWORD")
+	dbName := os.Getenv("DB_NAME")
+	dbSSL := os.Getenv("DB_SSLMODE")
+
+	// Fallback SSL mode
+	if dbSSL == "" {
+		dbSSL = "require"
+	}
+
+	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		dbHost, dbPort, dbUser, dbPassword, dbName, dbSSL)
+
+	db, err := sql.Open("postgres", psqlInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	err = db.Ping()
+	if err != nil {
+		return nil, err
+	}
+
+	return db, nil
+}
+
 func Handler(w http.ResponseWriter, r *http.Request) {
 	// Enable CORS
 	enableCors(&w)
 
-	// Handle OPTIONS (Preflight)
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
 
+	// Selalu set content type di awal
 	w.Header().Set("Content-Type", "application/json")
 
-	// Routing sederhana berdasarkan path
 	switch r.URL.Path {
 	case "/api/ping":
 		fmt.Fprintf(w, `{"message": "pong from Vercel Go Serverless!"}`)
-	case "/api/db-check":
-		conn, err := getDB()
-		if err != nil || conn == nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(w, `{"status": "error", "message": "Database terputus"}`)
+
+	case "/api/login":
+		if r.Method != "POST" {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			fmt.Fprintf(w, `{"status": "error", "message": "Method not allowed"}`)
 			return
 		}
-		if err := conn.Ping(); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(w, `{"status": "error", "message": "Database tidak merespon"}`)
+
+		var req LoginRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, `{"status": "error", "message": "Review payload JSON kamu"}`)
 			return
 		}
-		fmt.Fprintf(w, `{"status": "success", "message": "Database terhubung aman di Vercel!"}`)
+
+		db, err := connectDB()
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, `{"status": "error", "message": "Gagal konek database: %v"}`, err)
+			return
+		}
+		defer db.Close()
+
+		var user User
+		// Query password secara langsung (Note: Sangat disarankan pakai hashing kedepannya)
+		err = db.QueryRow("SELECT id, email, full_name FROM users WHERE email = $1 AND password = $2", 
+			req.Email, req.Password).Scan(&user.ID, &user.Email, &user.FullName)
+
+		if err != nil {
+			if err == sql.ErrNoRows {
+				w.WriteHeader(http.StatusUnauthorized)
+				fmt.Fprintf(w, `{"status": "error", "message": "Email atau password salah"}`)
+			} else {
+				w.WriteHeader(http.StatusInternalServerError)
+				fmt.Fprintf(w, `{"status": "error", "message": "Query Error: %v"}`, err)
+			}
+			return
+		}
+
+		json.NewEncoder(w).Encode(LoginResponse{
+			Status:  "success",
+			Message: "Login berhasil",
+			User:    &user,
+		})
+
 	default:
 		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprintf(w, `{"error": "Endpoint tidak ditemukan"}`)
+		fmt.Fprintf(w, `{"error": "Path tidak ditemukan: %s"}`, r.URL.Path)
 	}
 }
 

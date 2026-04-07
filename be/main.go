@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,31 +14,32 @@ import (
 
 var db *sql.DB
 
+type LoginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type User struct {
+	ID       int    `json:"id"`
+	Email    string `json:"email"`
+	FullName string `json:"full_name"`
+}
+
 func initDB() {
-	// Memuat variabel dari .env
 	err := godotenv.Load()
 	if err != nil {
 		log.Println("Warning: Tidak bisa memuat file .env, menggunakan environment variables sistem")
 	}
 
-	dbHost := os.Getenv("DB_HOST")
-	dbPort := os.Getenv("DB_PORT")
-	dbUser := os.Getenv("DB_USER")
-	dbPassword := os.Getenv("DB_PASSWORD")
-	dbName := os.Getenv("DB_NAME")
-	dbSSL := os.Getenv("DB_SSLMODE")
-
-	// Menyusun connection string PostgreSQL
 	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		dbHost, dbPort, dbUser, dbPassword, dbName, dbSSL)
+		os.Getenv("DB_HOST"), os.Getenv("DB_PORT"), os.Getenv("DB_USER"),
+		os.Getenv("DB_PASSWORD"), os.Getenv("DB_NAME"), os.Getenv("DB_SSLMODE"))
 
-	// Membuka koneksi database
 	db, err = sql.Open("postgres", psqlInfo)
 	if err != nil {
 		log.Fatal("Gagal membuka koneksi ke database:", err)
 	}
 
-	// Mengetes koneksi (Ping)
 	err = db.Ping()
 	if err != nil {
 		log.Fatal("Database tidak merespon (Ping gagal):", err)
@@ -46,31 +48,61 @@ func initDB() {
 	log.Println("Berhasil terhubung ke database!")
 }
 
+func handleLogin(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w)
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	if r.Method != "POST" {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req LoginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"status": "error", "message": "Format JSON salah"})
+		return
+	}
+
+	var user User
+	err := db.QueryRow("SELECT id, email, full_name FROM users WHERE email = $1 AND password = $2", 
+		req.Email, req.Password).Scan(&user.ID, &user.Email, &user.FullName)
+
+	w.Header().Set("Content-Type", "application/json")
+	if err != nil {
+		if err == sql.ErrNoRows {
+			w.WriteHeader(http.StatusUnauthorized)
+			json.NewEncoder(w).Encode(map[string]string{"status": "error", "message": "Email atau password salah"})
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{"status": "error", "message": "Database error"})
+		}
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":  "success",
+		"message": "Login berhasil",
+		"user":    user,
+	})
+}
+
 func main() {
 	initDB()
 	defer db.Close()
 
 	mux := http.NewServeMux()
 
-	// Endpoint dasar
 	mux.HandleFunc("/api/ping", func(w http.ResponseWriter, r *http.Request) {
 		enableCors(&w)
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintf(w, `{"message": "pong from Go backend!"}`)
 	})
 
-	// Endpoint untuk cek status database secara langsung via browser/API
-	mux.HandleFunc("/api/db-check", func(w http.ResponseWriter, r *http.Request) {
-		enableCors(&w)
-		err := db.Ping()
-		w.Header().Set("Content-Type", "application/json")
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(w, `{"status": "error", "message": "Database terputus: %s"}`, err.Error())
-			return
-		}
-		fmt.Fprintf(w, `{"status": "success", "message": "Database terhubung dengan aman!"}`)
-	})
+	mux.HandleFunc("/api/login", handleLogin)
 
 	fmt.Println("Server backend berjalan di :8080...")
 	log.Fatal(http.ListenAndServe(":8080", mux))

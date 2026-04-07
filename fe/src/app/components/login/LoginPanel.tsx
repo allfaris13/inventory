@@ -13,11 +13,38 @@ export const LoginPanel: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     
-    // Kita simulasi loading sebentar
-    setTimeout(() => {
+    try {
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      // Cek apakah response tipenya JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Server returned non-JSON:', text);
+        alert('Server mengalami gangguan. Periksa log Vercel kamu.');
+        return;
+      }
+
+      const data = await response.json();
+
+      if (response.ok && data.status === 'success') {
+        localStorage.setItem('user', JSON.stringify(data.user));
+        navigate('/dashboard');
+      } else {
+        alert(data.message || 'Login gagal. Periksa email dan password kamu.');
+      }
+    } catch (error) {
+      console.error('Network/Client Error:', error);
+      alert('Gagal terhubung ke API. Pastikan Vercel sudah benar konfigurasinya.');
+    } finally {
       setLoading(false);
-      navigate('/dashboard');
-    }, 1500);
+    }
   };
 
   return (
