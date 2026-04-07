@@ -237,42 +237,42 @@ export function Inventory() {
   return (
     <div className="inventory-wrapper space-y-6 animate-in fade-in duration-500 transition-colors">
       {/* Header with Export & Add Button */}
-      <div className="flex justify-between items-start">
+      <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold text-foreground tracking-tight">Manajemen Inventaris</h1>
-          <p className="text-muted-foreground font-medium">Telusuri dan kelola inventaris gudang</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight">Manajemen Inventaris</h1>
+          <p className="text-xs md:text-sm text-muted-foreground font-medium">Telusuri dan kelola inventaris gudang</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           <button 
             onClick={openAddModal}
-            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-all shadow-lg shadow-emerald-500/20"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-lg font-bold text-xs transition-all shadow-lg shadow-emerald-500/20 active:scale-95"
           >
-            <Plus size={18} />
-            Tambah Barang Baru
+            <Plus size={16} />
+            Barang Baru
           </button>
-          <button className="flex items-center gap-2 bg-muted hover:bg-muted/80 text-foreground px-4 py-2 rounded-lg font-semibold text-sm transition-all border border-border">
-            <Download size={18} />
-            Ekspor Data
+          <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-muted hover:bg-muted/80 text-foreground px-4 py-2.5 rounded-lg font-bold text-xs transition-all border border-border active:scale-95">
+            <Download size={16} />
+            Ekspor
           </button>
         </div>
       </div>
 
       {/* Filter Bar */}
-      <div className="flex items-center gap-4 bg-muted/30 border border-border p-3 rounded-xl transition-colors">
-        <div className="flex-1 flex items-center gap-3 px-3">
-          <Search size={18} className="text-muted-foreground" />
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3 bg-muted/30 border border-border p-2 md:p-3 rounded-2xl md:rounded-xl transition-colors">
+        <div className="flex-1 flex items-center gap-3 px-3 bg-card lg:bg-transparent rounded-xl lg:rounded-none h-12 lg:h-auto border border-border lg:border-none shadow-sm lg:shadow-none">
+          <Search size={18} className="text-muted-foreground shrink-0" />
           <input 
             type="text" 
-            placeholder="Cari berdasarkan SKU atau nama barang..."
+            placeholder="Cari SKU atau nama..."
             className="bg-transparent border-none outline-none text-foreground text-sm w-full font-medium placeholder:text-muted-foreground/50"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex items-center gap-2 px-3 group">
-          <Filter size={18} className="text-muted-foreground group-focus-within:text-primary transition-colors" />
+        <div className="flex items-center gap-2 px-3 group bg-card lg:bg-transparent rounded-xl lg:rounded-none h-12 lg:h-auto border border-border lg:border-none shadow-sm lg:shadow-none min-w-[160px]">
+          <Filter size={18} className="text-muted-foreground shrink-0 group-focus-within:text-primary transition-colors" />
           <select 
-            className="bg-transparent border-none outline-none text-foreground font-semibold text-sm cursor-pointer hover:text-primary transition-colors"
+            className="bg-transparent border-none outline-none text-foreground font-bold text-sm cursor-pointer hover:text-primary transition-colors w-full"
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
           >

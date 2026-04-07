@@ -84,7 +84,7 @@ export function Maintenance() {
   return (
     <div className="space-y-8 animate-in fade-in duration-500 transition-colors">
       {/* Stats Cards Row */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <Card className="p-6 border-border bg-card shadow-sm">
           <div className="flex items-center gap-5">
             <div className="w-12 h-12 rounded-full bg-rose-500/10 border border-rose-500/10 flex items-center justify-center text-rose-500">
