@@ -16,12 +16,15 @@ import { ProfileSettings } from './app/components/profile/ProfileSettings';
 import { LoginPanel } from './app/components/login/LoginPanel';
 
 export default function App() {
+  const isAuthenticated = !!localStorage.getItem('user');
+
   return (
     <ThemeProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPanel />} />
-          <Route path="/" element={<RootLayout />}>
+          
+          <Route path="/" element={isAuthenticated ? <RootLayout /> : <Navigate to="/login" replace />}>
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="inventory" element={<Inventory />} />
@@ -36,6 +39,9 @@ export default function App() {
             <Route path="profile-settings" element={<ProfileSettings />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Route>
+
+          {/* Fallback jika path ngaco */}
+          <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>
