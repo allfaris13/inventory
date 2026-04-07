@@ -32,8 +32,8 @@ export function RescheduleMaintenance() {
         <div className="space-y-8">
           {/* Current Task Info (ReadOnly) */}
           <div className="p-6 rounded-2xl bg-muted/20 border border-border space-y-3">
-             <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Aset Sedang Dikerjakan</p>
-             <h4 className="text-xl font-black text-foreground">{taskName}</h4>
+            <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Aset Sedang Dikerjakan</p>
+            <h4 className="text-xl font-black text-foreground">{taskName}</h4>
           </div>
 
           {/* Form Groups */}
@@ -79,10 +79,10 @@ export function RescheduleMaintenance() {
 
           {/* Warning Note */}
           <div className="flex gap-3 text-orange-500 bg-orange-500/5 p-4 rounded-xl border border-orange-500/10">
-             <AlertCircle size={20} className="shrink-0" />
-             <p className="text-xs font-medium leading-relaxed">
-               Melakukan jadwal ulang pada aset dengan prioritas **Kritis** dapat meningkatkan risiko kegagalan sistem. Pastikan tim teknis sudah dikonsultasikan.
-             </p>
+            <AlertCircle size={20} className="shrink-0" />
+            <p className="text-xs font-medium leading-relaxed">
+              Melakukan jadwal ulang pada aset dengan prioritas **Kritis** dapat meningkatkan risiko kegagalan sistem. Pastikan tim teknis sudah dikonsultasikan.
+            </p>
           </div>
 
           <div className="flex gap-4 pt-4">
