@@ -55,16 +55,14 @@ export const LoginPanel: React.FC = () => {
           <div className="login-hero-overlay" />
           
           {/* Asterisk Logo at the top left of the Hero section */}
-          <div style={{ position: 'absolute', top: '40px', left: '40px', fontSize: '40px', fontWeight: 'bold', zIndex: 2 }}>
-            *
-          </div>
+          <div className="login-logo-asterisk">*</div>
 
           <div className="login-hero-content">
-            <h2 style={{ fontSize: '2.4rem', marginBottom: '1.2rem', lineHeight: 1.1, fontWeight: 700 }}>
+            <h2>
               Pusat Kendali <br />
               <span style={{ opacity: 0.85 }}>Smart Inventory</span>
             </h2>
-            <p style={{ opacity: 0.8, lineHeight: 1.5, fontSize: '1rem', fontWeight: 500 }}>
+            <p style={{ opacity: 0.8, lineHeight: 1.5, fontWeight: 500 }}>
               Optimalkan alur kerja robotik dan manajemen stok gudang kamu dengan presisi tinggi.
             </p>
           </div>
@@ -72,9 +70,9 @@ export const LoginPanel: React.FC = () => {
         
         <form className="login-form" onSubmit={handleLogin}>
           <div className="login-header">
-            <div style={{ color: '#0066FF', fontSize: '32px', fontWeight: 'bold', marginBottom: '16px' }}>*</div>
-            <h1 style={{ fontSize: '1.8rem', fontWeight: 700 }}>Masuk ke Akun</h1>
-            <p style={{ fontSize: '14px' }}>Silakan masukkan detail akses untuk melanjutkan.</p>
+            <div className="login-form-asterisk">*</div>
+            <h1>Masuk ke Akun</h1>
+            <p>Silakan masukkan detail akses untuk melanjutkan.</p>
           </div>
           
           <div className="form-group">
