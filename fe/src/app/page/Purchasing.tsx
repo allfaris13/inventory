@@ -38,6 +38,7 @@ interface RABItem {
   estimasiHarga: number;
   totalEstimasi: number;
   kebutuhan: string; // e.g. "teknisi", "pengajar"
+  kategori: 'Fisik' | 'Non-Fisik';
   status: 'Pending' | 'Realized';
 }
 
@@ -55,9 +56,11 @@ interface RealisasiItem extends RABItem {
 }
 
 const MOCK_RAB: RABItem[] = [
-  { id: 'RAB-001', tanggalPengajuan: '05/01/2026', namaBarang: 'solder deko 60W', jumlah: 4, satuan: 'pcs', estimasiHarga: 80000, totalEstimasi: 320000, kebutuhan: 'teknisi', status: 'Pending' },
-  { id: 'RAB-002', tanggalPengajuan: '05/01/2026', namaBarang: 'tang cucut', jumlah: 2, satuan: 'pcs', estimasiHarga: 20000, totalEstimasi: 40000, kebutuhan: 'teknisi', status: 'Realized' },
-  { id: 'RAB-003', tanggalPengajuan: '05/01/2026', namaBarang: 'timah roll kecil', jumlah: 10, satuan: 'pcs', estimasiHarga: 25000, totalEstimasi: 250000, kebutuhan: 'teknisi', status: 'Realized' },
+  { id: 'RAB-001', tanggalPengajuan: '05/01/2026', namaBarang: 'solder deko 60W', jumlah: 4, satuan: 'pcs', estimasiHarga: 80000, totalEstimasi: 320000, kebutuhan: 'teknisi', kategori: 'Fisik', status: 'Pending' },
+  { id: 'RAB-002', tanggalPengajuan: '05/01/2026', namaBarang: 'tang cucut', jumlah: 2, satuan: 'pcs', estimasiHarga: 20000, totalEstimasi: 40000, kebutuhan: 'teknisi', kategori: 'Fisik', status: 'Realized' },
+  { id: 'RAB-003', tanggalPengajuan: '05/01/2026', namaBarang: 'timah roll kecil', jumlah: 10, satuan: 'pcs', estimasiHarga: 25000, totalEstimasi: 250000, kebutuhan: 'teknisi', kategori: 'Fisik', status: 'Realized' },
+  { id: 'RAB-004', tanggalPengajuan: '19/01/2026', namaBarang: 'bensin operasional', jumlah: 1, satuan: 'ls', estimasiHarga: 35000, totalEstimasi: 35000, kebutuhan: 'operasional', kategori: 'Non-Fisik', status: 'Realized' },
+  { id: 'RAB-005', tanggalPengajuan: '14/01/2026', namaBarang: 'parkir duta sonic', jumlah: 1, satuan: 'ls', estimasiHarga: 2000, totalEstimasi: 2000, kebutuhan: 'operasional', kategori: 'Non-Fisik', status: 'Realized' },
 ];
 
 const MOCK_REALISASI: RealisasiItem[] = [
@@ -79,6 +82,7 @@ const MOCK_REALISASI: RealisasiItem[] = [
     diskon: 0,
     totalAkhir: 40000,
     tujuanPembelian: 'teknisi',
+    kategori: 'Fisik',
     metodePembelian: 'offline',
     sumberDana: 'Dana RAB'
   },
@@ -100,6 +104,7 @@ const MOCK_REALISASI: RealisasiItem[] = [
     diskon: 0,
     totalAkhir: 250000,
     tujuanPembelian: 'teknisi',
+    kategori: 'Fisik',
     metodePembelian: 'offline',
     sumberDana: 'Dana RAB'
   },
@@ -121,6 +126,7 @@ const MOCK_REALISASI: RealisasiItem[] = [
     diskon: 15121,
     totalAkhir: 111679,
     tujuanPembelian: 'pengajar',
+    kategori: 'Fisik',
     metodePembelian: 'online',
     sumberDana: 'Dana RAB'
   },
@@ -142,6 +148,7 @@ const MOCK_REALISASI: RealisasiItem[] = [
     diskon: 6527,
     totalAkhir: 64018,
     tujuanPembelian: 'pengajar',
+    kategori: 'Fisik',
     metodePembelian: 'online',
     sumberDana: 'Dana RAB'
   },
@@ -163,6 +170,7 @@ const MOCK_REALISASI: RealisasiItem[] = [
     diskon: 9587,
     totalAkhir: 70821,
     tujuanPembelian: 'pengajar',
+    kategori: 'Fisik',
     metodePembelian: 'online',
     sumberDana: 'Dana RAB'
   },
@@ -184,6 +192,51 @@ const MOCK_REALISASI: RealisasiItem[] = [
     diskon: 0,
     totalAkhir: 63900,
     tujuanPembelian: 'kurikulum',
+    kategori: 'Fisik',
+    metodePembelian: 'offline',
+    sumberDana: 'Dana RAB'
+  },
+  { 
+    id: 'RAB-004', 
+    tanggalPengajuan: '19/01/2026', 
+    namaBarang: 'bensin operasional', 
+    jumlah: 1, 
+    satuan: 'ls', 
+    estimasiHarga: 35000, 
+    totalEstimasi: 35000, 
+    kebutuhan: 'operasional', 
+    kategori: 'Non-Fisik',
+    status: 'Realized',
+    tanggalPembelian: '19/01/2026',
+    hargaSatuan: 35000,
+    subTotal: 35000,
+    biayaLayanan: 0,
+    biayaOngkir: 0,
+    diskon: 0,
+    totalAkhir: 35000,
+    tujuanPembelian: 'operasional',
+    metodePembelian: 'offline',
+    sumberDana: 'Dana RAB'
+  },
+  { 
+    id: 'RAB-005', 
+    tanggalPengajuan: '14/01/2026', 
+    namaBarang: 'parkir duta sonic', 
+    jumlah: 1, 
+    satuan: 'ls', 
+    estimasiHarga: 2000, 
+    totalEstimasi: 2000, 
+    kebutuhan: 'operasional', 
+    kategori: 'Non-Fisik',
+    status: 'Realized',
+    tanggalPembelian: '14/01/2026',
+    hargaSatuan: 2000,
+    subTotal: 2000,
+    biayaLayanan: 0,
+    biayaOngkir: 0,
+    diskon: 0,
+    totalAkhir: 2000,
+    tujuanPembelian: 'operasional',
     metodePembelian: 'offline',
     sumberDana: 'Dana RAB'
   }
@@ -204,7 +257,8 @@ export function Purchasing() {
     jumlah: 1,
     satuan: 'pcs',
     estimasiHarga: 0,
-    kebutuhan: 'teknisi'
+    kebutuhan: 'teknisi',
+    kategori: 'Fisik'
   });
 
   // Form States for Realisasi
@@ -397,6 +451,7 @@ export function Purchasing() {
                       <TableHead className="px-8 font-black text-[10px] uppercase tracking-widest text-muted-foreground text-center">Qty</TableHead>
                       <TableHead className="px-8 font-black text-[10px] uppercase tracking-widest text-muted-foreground text-right">Harga</TableHead>
                       <TableHead className="px-8 font-black text-[10px] uppercase tracking-widest text-muted-foreground text-right">Extra Fees</TableHead>
+                      <TableHead className="px-8 font-black text-[10px] uppercase tracking-widest text-muted-foreground">Kategori</TableHead>
                       <TableHead className="px-8 font-black text-[10px] uppercase tracking-widest text-muted-foreground text-right">Total Akhir</TableHead>
                       <TableHead className="px-8 font-black text-[10px] uppercase tracking-widest text-muted-foreground">Metode</TableHead>
                    </TableRow>
@@ -419,7 +474,12 @@ export function Purchasing() {
                                {item.biayaOngkir === 0 && item.biayaLayanan === 0 && item.diskon === 0 && <span className="text-[10px] text-muted-foreground">No extra fees</span>}
                             </div>
                          </td>
-                         <td className="px-8 py-6 text-right text-lg font-black text-emerald-600 italic">{formatCurrency(item.totalAkhir)}</td>
+                         <td className="px-8 py-6">
+                             <Badge className={`${item.kategori === 'Fisik' ? 'bg-blue-500/10 text-blue-500' : 'bg-orange-500/10 text-orange-500'} border-transparent text-[9px] font-black uppercase tracking-widest`}>
+                                {item.kategori}
+                             </Badge>
+                          </td>
+                          <td className="px-8 py-6 text-right text-lg font-black text-emerald-600 italic">{formatCurrency(item.totalAkhir)}</td>
                          <td className="px-8 py-6">
                             <div className="flex flex-col gap-1">
                                <Badge className="bg-muted border-border text-foreground text-[9px] font-black uppercase tracking-widest w-fit">
@@ -483,7 +543,8 @@ export function Purchasing() {
                       <TableRow className="border-border hover:bg-transparent">
                          <TableHead className="px-8 font-black text-[10px] uppercase tracking-widest text-muted-foreground">Periode</TableHead>
                          <TableHead className="px-8 font-black text-[10px] uppercase tracking-widest text-muted-foreground text-right border-x border-border/10">Pemasukan Dana</TableHead>
-                         <TableHead className="px-8 font-black text-[10px] uppercase tracking-widest text-muted-foreground text-right">Pengeluaran RAB (Fisik)</TableHead>
+                         <TableHead className="px-8 font-black text-[10px] uppercase tracking-widest text-muted-foreground text-right">Pengeluaran Fisik</TableHead>
+                         <TableHead className="px-8 font-black text-[10px] uppercase tracking-widest text-muted-foreground text-right">Pengeluaran Non-Fisik</TableHead>
                          <TableHead className="px-8 font-black text-[10px] uppercase tracking-widest text-muted-foreground text-right">TOTAL PENGELUARAN</TableHead>
                          <TableHead className="px-8 font-black text-[10px] uppercase tracking-widest text-muted-foreground text-right border-l border-border/10">SISA DANA</TableHead>
                       </TableRow>
@@ -492,14 +553,22 @@ export function Purchasing() {
                       <TableRow className="border-border hover:bg-muted/10 font-black">
                          <td className="px-8 py-8 text-sm uppercase tracking-wider">Januari 2026</td>
                          <td className="px-8 py-8 text-right text-indigo-500 border-x border-border/10">{formatCurrency(16855990)}</td>
-                         <td className="px-8 py-8 text-right text-muted-foreground">{formatCurrency(14961273)}</td>
-                         <td className="px-8 py-8 text-right text-rose-500">{formatCurrency(15026773)}</td>
-                         <td className="px-8 py-8 text-right text-emerald-500 border-l border-border/10">{formatCurrency(1829216)}</td>
+                         <td className="px-8 py-8 text-right text-muted-foreground">
+                           {formatCurrency(realisasiItems.filter(i => i.kategori === 'Fisik').reduce((acc, i) => acc + i.totalAkhir, 0))}
+                         </td>
+                         <td className="px-8 py-8 text-right text-orange-500">
+                           {formatCurrency(realisasiItems.filter(i => i.kategori === 'Non-Fisik').reduce((acc, i) => acc + i.totalAkhir, 0))}
+                         </td>
+                         <td className="px-8 py-8 text-right text-rose-500">{formatCurrency(realisasiItems.reduce((acc, i) => acc + i.totalAkhir, 0))}</td>
+                         <td className="px-8 py-8 text-right text-emerald-500 border-l border-border/10">
+                           {formatCurrency(16855990 - realisasiItems.reduce((acc, i) => acc + i.totalAkhir, 0))}
+                         </td>
                       </TableRow>
                       {[2,3,4,5,6].map(m => (
                         <TableRow key={m} className="border-border hover:bg-muted/10 opacity-30 italic">
                            <td className="px-8 py-6 text-xs text-muted-foreground uppercase">{m === 2 ? 'Februari' : m === 3 ? 'Maret' : m === 4 ? 'April' : m === 5 ? 'Mei' : 'Juni'} 2026</td>
                            <td className="px-8 py-6 text-right border-x border-border/10">---</td>
+                           <td className="px-8 py-6 text-right">---</td>
                            <td className="px-8 py-6 text-right">---</td>
                            <td className="px-8 py-6 text-right">---</td>
                            <td className="px-8 py-6 text-right border-l border-border/10">---</td>
@@ -532,32 +601,43 @@ export function Purchasing() {
               </div>
 
               <form onSubmit={handleSaveRAB} className="p-10 space-y-8">
-                 <div className="grid grid-cols-2 gap-8">
-                    <div className="space-y-3">
-                       <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Tanggal Pengajuan</label>
-                       <Input 
-                         type="text"
-                         placeholder="DD/MM/YYYY" 
-                         className="h-12 border-border bg-muted/20 font-bold rounded-xl"
-                         value={newRAB.tanggalPengajuan}
-                         onChange={e => setNewRAB({...newRAB, tanggalPengajuan: e.target.value})}
-                         required
-                       />
-                    </div>
-                    <div className="space-y-3">
-                       <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Peruntukan / Kebutuhan</label>
-                       <select 
-                         className="h-12 w-full border border-border bg-muted/20 font-bold rounded-xl px-4 outline-none focus:ring-2 focus:ring-indigo-500"
-                         value={newRAB.kebutuhan}
-                         onChange={e => setNewRAB({...newRAB, kebutuhan: e.target.value})}
-                       >
-                          <option className="bg-card">teknisi</option>
-                          <option className="bg-card">pengajar</option>
-                          <option className="bg-card">kurikulum</option>
-                          <option className="bg-card">operasional</option>
-                       </select>
-                    </div>
-                 </div>
+                  <div className="grid grid-cols-3 gap-6">
+                     <div className="space-y-3 col-span-1">
+                        <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Tanggal Pengajuan</label>
+                        <Input 
+                          type="text"
+                          placeholder="DD/MM/YYYY" 
+                          className="h-12 border-border bg-muted/20 font-bold rounded-xl"
+                          value={newRAB.tanggalPengajuan}
+                          onChange={e => setNewRAB({...newRAB, tanggalPengajuan: e.target.value})}
+                          required
+                        />
+                     </div>
+                     <div className="space-y-3 col-span-1">
+                        <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Kategori</label>
+                        <select 
+                          className="h-12 w-full border border-border bg-muted/20 font-bold rounded-xl px-4 outline-none focus:ring-2 focus:ring-indigo-500"
+                          value={newRAB.kategori}
+                          onChange={e => setNewRAB({...newRAB, kategori: e.target.value as any})}
+                        >
+                           <option value="Fisik" className="bg-card">Fisik (Barang)</option>
+                           <option value="Non-Fisik" className="bg-card">Non-Fisik (Bensin/Parkir/etc)</option>
+                        </select>
+                     </div>
+                     <div className="space-y-3 col-span-1">
+                        <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Peruntukan</label>
+                        <select 
+                          className="h-12 w-full border border-border bg-muted/20 font-bold rounded-xl px-4 outline-none focus:ring-2 focus:ring-indigo-500"
+                          value={newRAB.kebutuhan}
+                          onChange={e => setNewRAB({...newRAB, kebutuhan: e.target.value})}
+                        >
+                           <option className="bg-card">teknisi</option>
+                           <option className="bg-card">pengajar</option>
+                           <option className="bg-card">kurikulum</option>
+                           <option className="bg-card">operasional</option>
+                        </select>
+                     </div>
+                  </div>
 
                  <div className="space-y-3">
                     <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Nama Barang</label>
