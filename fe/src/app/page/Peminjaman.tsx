@@ -2,19 +2,10 @@ import { useState } from 'react';
 import { Card } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
 import { 
-  Building2, 
-  Clock, 
-  MapPin, 
-  CheckCircle2, 
-  XCircle, 
-  QrCode, 
   ExternalLink,
-  Search,
   Filter,
   Package,
-  Share2,
   Calendar,
   User,
   Download as DownloadIcon,
@@ -63,7 +54,6 @@ const INITIAL_REQUESTS: BorrowRequest[] = [
 export function Peminjaman() {
   const [requests, setRequests] = useState<BorrowRequest[]>(INITIAL_REQUESTS);
   const [activeTab, setActiveTab] = useState<'Requests' | 'Active' | 'QR'>('Requests');
-  const [searchTerm, setSearchTerm] = useState('');
 
   const handleApprove = (id: string) => {
     setRequests(requests.map(req => 

@@ -1,6 +1,6 @@
 import { Card } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
-import { ArrowDownCircle, ArrowUpCircle, Calendar, Plus, X } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, Calendar, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "../components/ui/table";
-import { Printer, Download as DownloadIcon, CheckCircle2 } from "lucide-react";
+import { Printer, CheckCircle2 } from "lucide-react";
 
 const transactionData = [
   {

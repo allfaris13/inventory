@@ -5,8 +5,6 @@ import { Badge } from "../components/ui/badge";
 import { Progress } from "../components/ui/progress";
 import { 
   ArrowLeft, 
-  Wrench, 
-  Clock, 
   Calendar, 
   User, 
   CheckCircle2, 

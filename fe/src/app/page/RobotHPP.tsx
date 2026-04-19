@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Card } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { 
   ChevronDown, 
@@ -10,10 +9,8 @@ import {
   Settings, 
   Zap, 
   Layers, 
-  TrendingUp, 
   DollarSign, 
   Package,
-  Info,
   Plus,
   Trash2,
   X,

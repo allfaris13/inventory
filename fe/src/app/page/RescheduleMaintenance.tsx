@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { Card } from "../components/ui/card";
-import { ArrowLeft, Calendar, Clock, User, AlertCircle } from "lucide-react";
+import { ArrowLeft, Calendar, User, AlertCircle } from "lucide-react";
 import { useState } from "react";
 
 export function RescheduleMaintenance() {

@@ -8,6 +8,7 @@ import {
   Clock, 
   Plus,
   Users,
+  User,
   X,
   Wrench,
   ShieldCheck
