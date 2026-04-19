@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Progress } from '../components/ui/progress';
-import { Plus, X, Search, Download, Eye, Filter, Package, Pencil, ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
+import { Plus, X, Search, Download, Eye, Filter, Package, Pencil } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import './Inventory.css';
@@ -92,10 +92,6 @@ export function Inventory() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [specList, setSpecList] = useState<{key: string, value: string}[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua Kategori');
-  const [isStockModalOpen, setIsStockModalOpen] = useState(false);
-  const [stockAction, setStockAction] = useState<{type: 'Masuk' | 'Keluar', item: InventoryItem | null}>({type: 'Masuk', item: null});
-  const [stockQuantity, setStockQuantity] = useState<number>(0);
-  
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -105,14 +101,15 @@ export function Inventory() {
         if (Array.isArray(data)) {
           // Adapt DB fields to UI interface
           const adapted = data.map(item => ({
-            sku: item.id.toString(),
+            id: item.id.toString(),
             name: item.name,
             category: item.category,
             stock: item.stock,
-            maxStock: 100, // DB doesn't have maxStock yet
+            maxStock: 100, 
             condition: item.status || 'Baru',
             location: item.location,
-            image: ''
+            image: '',
+            type: item.type || 'mentah'
           }));
           setItems(adapted);
         }
@@ -249,32 +246,9 @@ export function Inventory() {
     setSpecList(specList.filter((_, i) => i !== index));
   };
 
-  const handleStockAction = (type: 'Masuk' | 'Keluar', item: InventoryItem) => {
-    setStockAction({ type, item });
-    setStockQuantity(0);
-    setIsStockModalOpen(true);
-  };
 
-  const saveStockAction = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!stockAction.item) return;
 
-    const quantity = stockAction.type === 'Masuk' ? stockQuantity : -stockQuantity;
-    const newStock = stockAction.item.stock + quantity;
 
-    if (newStock < 0) {
-      alert("Stok tidak boleh kurang dari nol!");
-      return;
-    }
-
-    setItems(items.map(item => 
-      item.id === stockAction.item?.id 
-        ? { ...item, stock: newStock } 
-        : item
-    ));
-
-    setIsStockModalOpen(false);
-  };
 
   return (
     <div className="inventory-wrapper space-y-6 animate-in fade-in duration-500 transition-colors">
@@ -676,65 +650,6 @@ export function Inventory() {
         </div>
       )}
 
-      {/* Stock Movement Modal */}
-      {isStockModalOpen && stockAction.item && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <Card className="w-full max-w-sm bg-slate-900 border-slate-800 shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-slate-800 flex justify-between items-center">
-              <div>
-                <h2 className="text-lg font-bold text-slate-50">Log Transaksi: {stockAction.type}</h2>
-                <p className="text-xs text-slate-400 mt-1">{stockAction.item.name}</p>
-              </div>
-              <button onClick={() => setIsStockModalOpen(false)} className="text-slate-400 hover:text-slate-50">
-                <X size={20} />
-              </button>
-            </div>
-            <form onSubmit={saveStockAction} className="p-8 space-y-5 bg-muted/10">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block text-center">JUMLAH UNIT</label>
-                <div className="relative">
-                  <Input 
-                    type="number" 
-                    required 
-                    min="1"
-                    placeholder="0" 
-                    className="w-full bg-card border-border h-12 pl-4 pr-14 text-xl font-bold text-center text-foreground rounded-xl outline-none focus:ring-2 focus:ring-primary transition-all shadow-inner"
-                    value={stockQuantity || ''}
-                    onChange={(e) => setStockQuantity(parseInt(e.target.value))}
-                  />
-                  <div className={`absolute right-6 top-1/2 -translate-y-1/2 font-black text-xs ${stockAction.type === 'Masuk' ? 'text-emerald-500' : 'text-rose-500'}`}>
-                    UNIT
-                  </div>
-                </div>
-              </div>
-
-              <div className="h-12 px-5 rounded-xl bg-card border border-border flex justify-between items-center shadow-inner">
-                <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Stok Estimasi</div>
-                <div className="text-base font-black text-foreground">
-                  {stockAction.item.stock} <span className="text-muted-foreground mx-1">→</span> {stockAction.type === 'Masuk' ? stockAction.item.stock + (stockQuantity || 0) : stockAction.item.stock - (stockQuantity || 0)}
-                </div>
-              </div>
-
-              <div className="pt-2 flex gap-3">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  className="flex-1 bg-transparent border-slate-800 text-slate-400 h-10 font-bold text-xs"
-                  onClick={() => setIsStockModalOpen(false)}
-                >
-                  Batal
-                </Button>
-                <Button 
-                  type="submit" 
-                  className={`flex-1 h-10 font-bold text-xs text-white shadow-lg ${stockAction.type === 'Masuk' ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20' : 'bg-rose-600 hover:bg-rose-500 shadow-rose-500/20'}`}
-                >
-                  Konfirmasi {stockAction.type}
-                </Button>
-              </div>
-            </form>
-          </Card>
-        </div>
-      )}
     </div>
   );
 }

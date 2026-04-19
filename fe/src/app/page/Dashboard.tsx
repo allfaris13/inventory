@@ -10,8 +10,7 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   TrendingUp,
-  Wallet,
-  ArrowDown
+  Wallet
 } from 'lucide-react';
 import './Dashboard.css';
 

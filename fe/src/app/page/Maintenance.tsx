@@ -7,11 +7,9 @@ import {
   CheckCircle2, 
   Clock, 
   Plus,
-  Users,
   User,
   X,
-  Wrench,
-  ShieldCheck
+  Wrench
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "../components/ui/button";
