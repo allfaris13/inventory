@@ -6,34 +6,22 @@ import { useState } from "react";
 export function RescheduleMaintenance() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [newDate, setNewDate] = useState("");
-  const [newTime, setNewTime] = useState("");
+  const [newRepairDate, setNewRepairDate] = useState("");
+  const [newReturnDate, setNewReturnDate] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async () => {
-    if (!newDate) {
-      alert("Pilih tanggal baru!");
+    if (!newRepairDate) {
+      alert("Pilih tanggal perbaikan baru!");
       return;
     }
     setIsSaving(true);
-    try {
-      const response = await fetch('/api/maintenance', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: Number(id), date: newDate })
-      });
-      if (response.ok) {
-        alert("Jadwal berhasil diperbarui!");
-        navigate("/maintenance");
-      } else {
-        alert("Gagal memperbarui jadwal.");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Error koneksi.");
-    } finally {
+    // Simulating API call
+    setTimeout(() => {
+      alert("Jadwal berhasil diperbarui!");
+      navigate("/maintenance");
       setIsSaving(false);
-    }
+    }, 1000);
   };
 
   const taskName = id === "1" ? "Array Sensor Lidar - Zona A" : id === "2" ? "Kontroler Lengan Robot - Zona B" : "Modul Kamera Visual";
@@ -51,64 +39,66 @@ export function RescheduleMaintenance() {
 
       {/* Header */}
       <div className="space-y-1">
-        <h1 className="text-3xl font-bold text-foreground tracking-tight uppercase">Jadwal Ulang Pemeliharaan</h1>
-        <p className="text-muted-foreground font-medium uppercase tracking-wider text-xs">ATUR ULANG WAKTU PELAKSANAAN UNTUK ID: MNT-{id}</p>
+        <h1 className="text-3xl font-bold text-foreground tracking-tight uppercase italic">Reschedule Unit</h1>
+        <p className="text-muted-foreground font-medium uppercase tracking-wider text-xs">ATUR ULANG DURASI PENGERJAAN UNTUK ID: MNT-{id}</p>
       </div>
 
-      <Card className="p-8 border-border bg-card shadow-sm transition-colors rounded-[2rem]">
+      <Card className="p-8 border-border bg-card shadow-sm transition-colors rounded-[2.5rem]">
         <div className="space-y-8">
           {/* Current Task Info (ReadOnly) */}
-          <div className="p-6 rounded-2xl bg-muted/20 border border-border space-y-3">
+          <div className="p-6 rounded-2xl bg-muted/20 border border-border border-l-4 border-l-indigo-500 space-y-1">
             <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Aset Sedang Dikerjakan</p>
             <h4 className="text-xl font-black text-foreground">{taskName}</h4>
           </div>
 
           {/* Form Groups */}
           <div className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                <Calendar size={14} className="text-indigo-500" />
-                Tanggal Pelaksanaan Baru
-              </label>
-              <input 
-                type="date" 
-                className="w-full bg-muted/10 border border-border rounded-xl px-4 py-4 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all font-bold shadow-sm"
-                value={newDate}
-                onChange={(e) => setNewDate(e.target.value)}
-              />
+            <div className="grid grid-cols-2 gap-4">
+               <div className="space-y-2">
+                 <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2 ml-1">
+                   <Calendar size={14} className="text-indigo-500" />
+                   Tanggal Perbaikan
+                 </label>
+                 <input 
+                   type="date" 
+                   className="w-full bg-muted/10 border border-border rounded-xl px-4 py-4 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all font-bold shadow-sm"
+                   value={newRepairDate}
+                   onChange={(e) => setNewRepairDate(e.target.value)}
+                 />
+               </div>
+
+               <div className="space-y-2">
+                 <label className="text-[10px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-2 ml-1">
+                   <Calendar size={14} />
+                   Estimasi Kembali
+                 </label>
+                 <input 
+                   type="date" 
+                   className="w-full bg-indigo-500/5 border border-indigo-500/20 rounded-xl px-4 py-4 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all font-bold shadow-sm"
+                   value={newReturnDate}
+                   onChange={(e) => setNewReturnDate(e.target.value)}
+                 />
+               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                <Clock size={14} className="text-indigo-500" />
-                Waktu Pelaksanaan
-              </label>
-              <input 
-                type="time" 
-                className="w-full bg-muted/10 border border-border rounded-xl px-4 py-4 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all font-bold shadow-sm"
-                value={newTime}
-                onChange={(e) => setNewTime(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2 ml-1">
                 <User size={14} className="text-indigo-500" />
-                Alasan Penjadwalan Ulang
+                Alasan Penundaan
               </label>
               <textarea 
                 rows={4}
-                placeholder="Berikan alasan logis mengapa pemeliharaan harus ditunda atau diatur ulang..."
+                placeholder="Berikan alasan logis mengapa pengembalian barang tertunda..."
                 className="w-full bg-muted/10 border border-border rounded-xl px-4 py-4 text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all font-bold resize-none text-sm shadow-sm"
               />
             </div>
           </div>
 
           {/* Warning Note */}
-          <div className="flex gap-3 text-orange-500 bg-orange-500/5 p-4 rounded-xl border border-orange-500/10">
-            <AlertCircle size={20} className="shrink-0" />
-            <p className="text-xs font-medium leading-relaxed">
-              Melakukan jadwal ulang pada aset dengan prioritas **Kritis** dapat meningkatkan risiko kegagalan sistem. Pastikan tim teknis sudah dikonsultasikan.
+          <div className="flex gap-4 text-rose-500 bg-rose-500/5 p-5 rounded-2xl border border-rose-500/10 items-center">
+            <AlertCircle size={24} className="shrink-0" />
+            <p className="text-xs font-bold leading-relaxed">
+              Unit dengan prioritas <span className="underline italic">Perbaikan Teknis</span> memerlukan koordinasi jadwal dengan Warehouse untuk sinkronisasi inventaris cadangan.
             </p>
           </div>
 
@@ -124,7 +114,7 @@ export function RescheduleMaintenance() {
               disabled={isSaving}
               className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase text-[10px] tracking-widest h-14 shadow-lg shadow-indigo-500/20 active:scale-95 transition-all rounded-2xl disabled:opacity-50"
             >
-              {isSaving ? "Menyimpan..." : "Simpan Jadwal Baru"}
+              {isSaving ? "Menyimpan..." : "Update Jadwal"}
             </button>
           </div>
         </div>

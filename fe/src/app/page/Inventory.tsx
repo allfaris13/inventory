@@ -9,13 +9,14 @@ import { Input } from '../components/ui/input';
 import './Inventory.css';
 
 interface InventoryItem {
-  sku: string;
+  id: string; // Internal ID instead of SKU
   name: string;
   category: string;
   stock: number;
   maxStock: number;
   condition: string;
   location: string;
+  type: 'mentah' | 'matang';
   unitPrice?: string;
   supplier?: string;
   image?: string;
@@ -24,52 +25,71 @@ interface InventoryItem {
 
 const INITIAL_INVENTORY: InventoryItem[] = [
   { 
-    sku: 'LDR-500-A', 
-    name: 'Sensor Lidar LDR-500', 
+    id: '1', 
+    name: 'Saklar On/Off Mini', 
     category: 'Elektronik', 
-    stock: 8, 
-    maxStock: 50, 
+    stock: 120, 
+    maxStock: 500, 
     condition: 'Baru', 
-    location: 'Zona A - Rak 12', 
-    image: 'https://images.unsplash.com/photo-1591405351990-4726e33df58d?auto=format&fit=crop&q=80&w=200',
-    specifications: {
-      "Jangkauan Deteksi": "0.1m - 100m",
-      "Akurasi": "±2cm",
-      "Kecepatan Pemindaian": "10 Hz",
-      "Panjang Gelombang": "905 nm",
-      "Catu Daya": "12-24V DC",
-      "Suhu Operasi": "-20°C hingga 60°C",
-      "Berat": "850g",
-      "Antarmuka": "Ethernet, CAN Bus",
-    }
+    location: 'Zona A - Laci 1', 
+    type: 'mentah',
+    image: 'https://images.unsplash.com/photo-1558002038-103792e01a8d?auto=format&fit=crop&q=80&w=200',
+    specifications: { "Tipe": "Rocker Switch", "Rating": "3A 250V" }
   },
-  { sku: 'SM-200-B', name: 'Motor Stepper Industri', category: 'Mekanik', stock: 45, maxStock: 100, condition: 'Baru', location: 'Zona B - Rak 5', image: 'https://images.unsplash.com/photo-1518015560910-c48154af0049?auto=format&fit=crop&q=80&w=200' },
-  { sku: 'ACT-350-C', name: 'Aktuator Pneumatik', category: 'Aktuator', stock: 23, maxStock: 60, condition: 'Rekondisi', location: 'Zona A - Rak 8', image: 'https://images.unsplash.com/photo-1537462715879-360eeb61a0ad?auto=format&fit=crop&q=80&w=200' },
-  { sku: 'BP-3000-D', name: 'Paket Baterai BP-3000', category: 'Baterai', stock: 18, maxStock: 80, condition: 'Baru', location: 'Zona C - Rak 3', image: 'https://images.unsplash.com/photo-1520108343160-58957bf80839?auto=format&fit=crop&q=80&w=200' },
-  { sku: 'CB-X1-E', name: 'Papan Kontrol CB-X1', category: 'Elektronik', stock: 67, maxStock: 120, condition: 'Baru', location: 'Zona B - Rak 15', image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=200' },
-  { sku: 'SV-200-F', name: 'Motor Servo SM-200', category: 'Mekanik', stock: 12, maxStock: 40, condition: 'Dalam Perbaikan', location: 'Zona A - Rak 20', image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=200' },
-  { sku: 'CAM-HD-G', name: 'Modul Kamera HD', category: 'Elektronik', stock: 34, maxStock: 75, condition: 'Baru', location: 'Zona C - Rak 7', image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&q=80&w=200' },
-  { sku: 'GRP-500-H', name: 'Perakit Gripper Robotik', category: 'Mekanik', stock: 29, maxStock: 50, condition: 'Baru', location: 'Zona B - Rak 11', image: 'https://images.unsplash.com/photo-1563206767-5b18f218e7de?auto=format&fit=crop&q=80&w=200' }
+  { 
+    id: '2', 
+    name: 'Kabel Jumper AWG24 (Meter)', 
+    category: 'Kelistrikan', 
+    stock: 50, 
+    maxStock: 200, 
+    condition: 'Baru', 
+    location: 'Zona B - Rak Kabel', 
+    type: 'mentah', 
+    image: 'https://images.unsplash.com/photo-1558486012-817176f84c6d?auto=format&fit=crop&q=80&w=200' 
+  },
+  { 
+    id: '3', 
+    name: 'Saklar Terakit', 
+    category: 'Perakitan', 
+    stock: 15, 
+    maxStock: 100, 
+    condition: 'Baru', 
+    location: 'Zona Matang - Rak 1', 
+    type: 'matang', 
+    image: 'https://images.unsplash.com/photo-1591485423007-765bde4139ef?auto=format&fit=crop&q=80&w=200' 
+  }
+];
+
+const ASSEMBLY_RECIPES = [
+  {
+    productName: 'Saklar Terakit',
+    components: [
+      { nameMatch: 'Saklar On/Off', qty: 1 },
+      { nameMatch: 'Kabel Jumper', qty: 1 }
+    ]
+  }
 ];
 
 export function Inventory() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState<'mentah' | 'matang'>('mentah');
   const [items, setItems] = useState<InventoryItem[]>(INITIAL_INVENTORY);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newItem, setNewItem] = useState<InventoryItem>({
-    sku: '',
+    id: '',
     name: '',
     category: 'Elektronik',
     stock: 0,
     maxStock: 0,
     condition: 'Baru',
     location: '',
+    type: 'mentah',
     unitPrice: '',
     supplier: '',
     image: '',
     specifications: {}
   });
-  const [editingSku, setEditingSku] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [specList, setSpecList] = useState<{key: string, value: string}[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua Kategori');
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
@@ -101,10 +121,10 @@ export function Inventory() {
   }, []);
   
   const filtered = items.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         item.sku.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'Semua Kategori' || item.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+    const matchesTab = item.type === activeTab;
+    return matchesSearch && matchesCategory && matchesTab;
   });
 
   const getCategoryBadgeClass = (category: string) => {
@@ -138,25 +158,47 @@ export function Inventory() {
 
     const itemToSave = { ...newItem, specifications: specs };
 
-    if (editingSku) {
-      setItems(items.map(item => item.sku === editingSku ? itemToSave : item));
+    // Logic for automatic stock deduction if it's a "Matang" item being added (not edited)
+    if (!editingId && newItem.type === 'matang') {
+      const updatedItems = [...items];
+      const qty = newItem.stock || 1;
+
+      // Dynamic Assembly Deductions
+      const recipe = ASSEMBLY_RECIPES.find(r => 
+        newItem.name.toLowerCase().includes(r.productName.toLowerCase())
+      );
+
+      if (recipe) {
+        recipe.components.forEach(comp => {
+          updatedItems.forEach(item => {
+            if (item.name.toLowerCase().includes(comp.nameMatch.toLowerCase()) && item.type === 'mentah') {
+              item.stock = Math.max(0, item.stock - (comp.qty * qty));
+            }
+          });
+        });
+      }
+      
+      setItems([{ ...itemToSave, id: Date.now().toString() }, ...updatedItems]);
+    } else if (editingId) {
+      setItems(items.map(item => item.id === editingId ? itemToSave : item));
     } else {
-      setItems([itemToSave, ...items]);
+      setItems([{ ...itemToSave, id: Date.now().toString() }, ...items]);
     }
     
     closeModal();
   };
 
-  const openAddModal = () => {
-    setEditingSku(null);
+  const openAddModal = (type: 'mentah' | 'matang') => {
+    setEditingId(null);
     setNewItem({
-      sku: '',
+      id: '',
       name: '',
-      category: 'Elektronik',
+      category: type === 'mentah' ? 'Elektronik' : 'Robotik',
       stock: 0,
       maxStock: 0,
       condition: 'Baru',
       location: '',
+      type: type,
       unitPrice: '',
       supplier: '',
       image: '',
@@ -167,7 +209,7 @@ export function Inventory() {
   };
 
   const openEditModal = (item: InventoryItem) => {
-    setEditingSku(item.sku);
+    setEditingId(item.id);
     setNewItem(item);
     
     // Map specifications object to specList array for the form
@@ -179,7 +221,7 @@ export function Inventory() {
 
   const closeModal = () => {
     setIsModalOpen(false);
-    setEditingSku(null);
+    setEditingId(null);
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -226,7 +268,7 @@ export function Inventory() {
     }
 
     setItems(items.map(item => 
-      item.sku === stockAction.item?.sku 
+      item.id === stockAction.item?.id 
         ? { ...item, stock: newStock } 
         : item
     ));
@@ -243,18 +285,44 @@ export function Inventory() {
           <p className="text-xs md:text-sm text-muted-foreground font-medium">Telusuri dan kelola inventaris gudang</p>
         </div>
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-          <button 
-            onClick={openAddModal}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-lg font-bold text-xs transition-all shadow-lg shadow-emerald-500/20 active:scale-95"
-          >
-            <Plus size={16} />
-            Barang Baru
-          </button>
+          {activeTab === 'mentah' ? (
+            <button 
+              onClick={() => openAddModal('mentah')}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-lg font-bold text-xs transition-all shadow-lg shadow-emerald-500/20 active:scale-95"
+            >
+              <Plus size={16} />
+              Beli Barang Baru
+            </button>
+          ) : (
+            <button 
+              onClick={() => openAddModal('matang')}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-lg font-bold text-xs transition-all shadow-lg shadow-indigo-500/20 active:scale-95"
+            >
+              <Plus size={16} />
+              Catat Rakit Baru
+            </button>
+          )}
           <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-muted hover:bg-muted/80 text-foreground px-4 py-2.5 rounded-lg font-bold text-xs transition-all border border-border active:scale-95">
             <Download size={16} />
             Ekspor
           </button>
         </div>
+      </div>
+
+      {/* Modern Tabs */}
+      <div className="flex p-1 bg-muted/30 rounded-2xl w-full max-w-md border border-border">
+        <button
+          onClick={() => setActiveTab('mentah')}
+          className={`flex-1 py-3 px-6 rounded-xl font-black text-[10px] tracking-[0.2em] uppercase transition-all ${activeTab === 'mentah' ? 'bg-card text-foreground shadow-lg border border-border' : 'text-muted-foreground hover:text-foreground'}`}
+        >
+          Barang Mentah
+        </button>
+        <button
+          onClick={() => setActiveTab('matang')}
+          className={`flex-1 py-3 px-6 rounded-xl font-black text-[10px] tracking-[0.2em] uppercase transition-all ${activeTab === 'matang' ? 'bg-card text-foreground shadow-lg border border-border' : 'text-muted-foreground hover:text-foreground'}`}
+        >
+          Barang Matang
+        </button>
       </div>
 
       {/* Filter Bar */}
@@ -263,7 +331,7 @@ export function Inventory() {
           <Search size={18} className="text-muted-foreground shrink-0" />
           <input 
             type="text" 
-            placeholder="Cari SKU atau nama..."
+            placeholder="Cari nama barang..."
             className="bg-transparent border-none outline-none text-foreground text-sm w-full font-medium placeholder:text-muted-foreground/50"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -292,10 +360,9 @@ export function Inventory() {
             <thead>
               <tr className="bg-muted/40 border-b border-border">
                 <th className="px-6 py-4 text-[11px] font-bold text-muted-foreground uppercase tracking-widest min-w-[80px]">Foto</th>
-                <th className="px-6 py-4 text-[11px] font-bold text-muted-foreground uppercase tracking-widest">SKU</th>
                 <th className="px-6 py-4 text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Nama Barang</th>
                 <th className="px-6 py-4 text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Kategori</th>
-                <th className="px-6 py-4 text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Level Stok</th>
+                <th className="px-6 py-4 text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Jumlah Stok</th>
                 <th className="px-6 py-4 text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Kondisi</th>
                 <th className="px-6 py-4 text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Lokasi</th>
                 <th className="px-6 py-4 text-[11px] font-bold text-muted-foreground uppercase tracking-widest text-right">Aksi</th>
@@ -307,7 +374,7 @@ export function Inventory() {
                 const isCritical = percentage < 25;
 
                 return (
-                  <tr key={item.sku} className="group hover:bg-muted/10 transition-colors">
+                  <tr key={item.id} className="group hover:bg-muted/10 transition-colors">
                     <td className="px-6 py-5">
                       <div className="w-12 h-12 rounded-lg bg-muted border border-border overflow-hidden flex items-center justify-center">
                         {item.image ? (
@@ -317,23 +384,22 @@ export function Inventory() {
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-5 text-sm font-medium text-primary font-mono">{item.sku}</td>
                     <td className="px-6 py-5 text-sm font-semibold text-foreground">{item.name}</td>
                     <td className="px-6 py-5 text-sm">
                       <Badge className={`${getCategoryBadgeClass(item.category)} text-[10px] uppercase font-bold py-1 px-3 border`}>
                         {item.category}
                       </Badge>
                     </td>
-                    <td className="px-6 py-5 min-w-[180px]">
+                    <td className="px-6 py-5 min-w-[160px]">
                       <div className="flex justify-between items-center mb-1.5">
-                        <span className={`text-xs font-bold ${isCritical ? 'text-rose-500' : 'text-foreground'}`}>
+                        <span className={`text-xs font-black ${isCritical ? 'text-rose-500' : 'text-foreground'}`}>
                           {item.stock} / {item.maxStock}
                         </span>
-                        <span className="text-[10px] font-bold text-muted-foreground">{percentage}%</span>
+                        <span className="text-[10px] font-black text-muted-foreground">{percentage}%</span>
                       </div>
                       <Progress 
                         value={percentage} 
-                        className={`h-1.5 ${isCritical ? '[&>div]:bg-rose-500' : '[&>div]:bg-primary'}`} 
+                        className={`h-1.5 ${isCritical ? '[&>div]:bg-rose-500' : '[&>div]:bg-primary shadow-[0_0_8px_rgba(99,102,241,0.3)]'}`} 
                       />
                     </td>
                     <td className="px-6 py-5">
@@ -345,33 +411,18 @@ export function Inventory() {
                     <td className="px-6 py-5 text-right">
                       <div className="flex justify-end gap-1.5">
                         <button 
-                          onClick={() => handleStockAction('Masuk', item)}
-                          className="p-1.5 text-emerald-500 hover:bg-emerald-500/10 rounded-md transition-colors"
-                          title="Barang Masuk"
-                        >
-                          <ArrowDownCircle size={16} />
-                        </button>
-                        <button 
-                          onClick={() => handleStockAction('Keluar', item)}
-                          className="p-1.5 text-rose-500 hover:bg-rose-500/10 rounded-md transition-colors"
-                          title="Barang Keluar"
-                        >
-                          <ArrowUpCircle size={16} />
-                        </button>
-                        <div className="w-px h-4 bg-border mx-1 self-center"></div>
-                        <button 
                           onClick={() => openEditModal(item)}
                           className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
                           title="Edit"
                         >
-                          <Pencil size={16} />
+                          <Pencil size={18} />
                         </button>
                         <button 
-                          onClick={() => navigate(`/inventory/${item.sku}`)}
+                          onClick={() => navigate(`/inventory/${item.id}`)}
                           className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
                           title="Lihat"
                         >
-                          <Eye size={16} />
+                          <Eye size={18} />
                         </button>
                       </div>
                     </td>
@@ -404,7 +455,9 @@ export function Inventory() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
           <Card className="w-full max-w-md bg-card border-border shadow-2xl animate-in zoom-in-95 duration-200 rounded-[2rem]">
             <div className="flex justify-between items-center p-8 border-b border-border bg-muted/20">
-              <h2 className="text-xl font-black text-foreground uppercase tracking-tight">{editingSku ? 'Edit Barang' : 'Tambah Barang Baru'}</h2>
+              <h2 className="text-xl font-black text-foreground uppercase tracking-tight">
+                {editingId ? 'Edit Barang' : (newItem.type === 'mentah' ? 'Tambah Barang Mentah' : 'Catat Barang Matang')}
+              </h2>
               <button 
                 onClick={closeModal}
                 className="text-muted-foreground hover:text-foreground transition-colors"
@@ -417,27 +470,23 @@ export function Inventory() {
             <form onSubmit={handleSaveItem} className="flex flex-col max-h-[82vh]">
               <div className="p-10 overflow-y-auto custom-scrollbar">
                 <div className="grid grid-cols-2 gap-6 mb-6">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">SKU</label>
-                    <Input 
-                      required 
-                      placeholder="LDR-500-A" 
-                      className="bg-card border-border h-12 font-bold text-foreground rounded-xl"
-                      value={newItem.sku}
-                      onChange={e => setNewItem({...newItem, sku: e.target.value})}
-                    />
-                  </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 col-span-2">
                     <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Kategori</label>
                     <select 
                       className="flex h-12 w-full rounded-xl border border-border bg-card px-3 py-1 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary font-bold shadow-sm"
                       value={newItem.category}
                       onChange={e => setNewItem({...newItem, category: e.target.value})}
                     >
-                      <option className="bg-card">Elektronik</option>
-                      <option className="bg-card">Mekanik</option>
-                      <option className="bg-card">Aktuator</option>
-                      <option className="bg-card">Baterai</option>
+                      {newItem.type === 'mentah' ? (
+                        <>
+                          <option className="bg-card">Elektronik</option>
+                          <option className="bg-card">Mekanik</option>
+                          <option className="bg-card">Aktuator</option>
+                          <option className="bg-card">Baterai</option>
+                        </>
+                      ) : (
+                        <option className="bg-card">Robotik</option>
+                      )}
                     </select>
                   </div>
                 </div>
@@ -451,6 +500,17 @@ export function Inventory() {
                     value={newItem.name}
                     onChange={e => setNewItem({...newItem, name: e.target.value})}
                   />
+                  {!editingId && newItem.type === 'matang' && newItem.name && ASSEMBLY_RECIPES.some(r => newItem.name.toLowerCase().includes(r.productName.toLowerCase())) && (
+                    <div className="mt-2 p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl animate-in slide-in-from-top-2 duration-300">
+                       <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-2">
+                         <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+                         Auto-Deduction Terdeteksi
+                       </p>
+                       <p className="text-[11px] text-muted-foreground mt-1">
+                         Menyimpan barang ini akan memotong stok <b>Saklar</b> dan <b>Kabel</b> di tab Mentah secara otomatis.
+                       </p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-6 mb-6">
@@ -608,7 +668,7 @@ export function Inventory() {
                   type="submit" 
                   className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white h-14 font-black text-[10px] uppercase tracking-widest rounded-2xl shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"
                 >
-                  {editingSku ? 'Simpan Perubahan' : 'Simpan Barang'}
+                  {editingId ? 'Simpan Perubahan' : 'Simpan Barang'}
                 </Button>
               </div>
             </form>

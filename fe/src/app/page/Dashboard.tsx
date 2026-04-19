@@ -8,7 +8,10 @@ import {
   Activity, 
   DollarSign, 
   ArrowUpRight,
-  TrendingUp
+  ArrowDownRight,
+  TrendingUp,
+  Wallet,
+  ArrowDown
 } from 'lucide-react';
 import './Dashboard.css';
 
@@ -39,7 +42,7 @@ export function Dashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
         <Card className="p-0 border-border bg-card shadow-sm group">
           <div className="flex justify-between items-start p-6">
             <div className="space-y-2">
@@ -72,11 +75,43 @@ export function Dashboard() {
         <Card className="p-0 border-border bg-card shadow-sm group">
           <div className="flex justify-between items-start p-6">
             <div className="space-y-2">
+              <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">Pemasukan Dana</p>
+              <h2 className="text-3xl font-black text-emerald-500 tracking-tight">Rp 16.85M</h2>
+              <div className="flex items-center text-emerald-500 text-xs font-black gap-1">
+                <ArrowUpRight size={14} />
+                <span>Target Tercapai</span>
+              </div>
+            </div>
+            <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/10 text-emerald-500 group-hover:scale-110 transition-transform">
+               <Wallet size={24} />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-0 border-border bg-card shadow-sm group">
+          <div className="flex justify-between items-start p-6">
+            <div className="space-y-2">
+              <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">Pengeluaran RAB</p>
+              <h2 className="text-3xl font-black text-rose-500 tracking-tight">Rp 15.02M</h2>
+              <div className="flex items-center text-rose-500 text-xs font-black gap-1">
+                <ArrowDownRight size={14} />
+                <span>Dalam Anggaran</span>
+              </div>
+            </div>
+            <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/10 text-rose-500 group-hover:scale-110 transition-transform">
+               <ArrowUpRight size={24} />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-0 border-border bg-card shadow-sm group">
+          <div className="flex justify-between items-start p-6">
+            <div className="space-y-2">
               <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">Aktivitas Hari Ini</p>
               <h2 className="text-3xl font-black text-foreground tracking-tight">107</h2>
               <p className="text-muted-foreground text-[10px] font-black uppercase">Transaksi</p>
             </div>
-            <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/10 text-emerald-500 group-hover:scale-110 transition-transform">
+            <div className="p-3 rounded-2xl bg-indigo-500/5 border border-indigo-500/10 text-indigo-500 group-hover:scale-110 transition-transform text-opacity-50">
               <Activity size={24} />
             </div>
           </div>

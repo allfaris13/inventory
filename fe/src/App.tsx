@@ -9,10 +9,13 @@ import { MaintenanceDetail } from './app/page/MaintenanceDetail';
 import { RescheduleMaintenance } from './app/page/RescheduleMaintenance';
 import { Maintenance } from './app/page/Maintenance';
 import { Transactions } from './app/page/Transactions';
-import { Vendors } from './app/page/Vendors';
+import { Peminjaman } from './app/page/Peminjaman';
+import { PinjamForm } from './app/page/PinjamForm';
 import { WarehouseMap } from './app/page/WarehouseMap';
 import { SystemPreferences } from './app/components/profile/SystemPreferences';
 import { ProfileSettings } from './app/components/profile/ProfileSettings';
+import { RobotHPP } from './app/page/RobotHPP';
+import { Purchasing } from './app/page/Purchasing';
 
 import { LoginPanel } from './app/components/login/LoginPanel';
 
@@ -51,12 +54,17 @@ export default function App() {
             <Route path="maintenance/:id" element={<MaintenanceDetail />} />
             <Route path="maintenance/reschedule/:id" element={<RescheduleMaintenance />} />
             <Route path="transactions" element={<Transactions />} />
-            <Route path="vendors" element={<Vendors />} />
+            <Route path="peminjaman" element={<Peminjaman />} />
             <Route path="warehouse-map" element={<WarehouseMap />} />
+            <Route path="production-cost" element={<RobotHPP />} />
+            <Route path="purchasing" element={<Purchasing />} />
             <Route path="system-preferences" element={<SystemPreferences />} />
             <Route path="profile-settings" element={<ProfileSettings />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Route>
+
+          {/* Public Route for Schools */}
+          <Route path="/pinjam" element={<PinjamForm />} />
 
           {/* Fallback jika path ngaco */}
           <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />

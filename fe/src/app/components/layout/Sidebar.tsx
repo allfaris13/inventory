@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router";
+import { Link, useLocation } from "react-router-dom";
 import { 
   LayoutDashboard, 
   Package, 
@@ -6,15 +6,19 @@ import {
   Building2, 
   Wrench, 
   Map,
+  DollarSign,
+  ShoppingBag,
   X 
 } from "lucide-react";
 
 const navItems = [
   { path: "/dashboard", label: "Dasbor", icon: LayoutDashboard },
   { path: "/inventory", label: "Inventaris", icon: Package },
+  { path: "/purchasing", label: "Purchasing", icon: ShoppingBag },
   { path: "/transactions", label: "Transaksi", icon: ArrowLeftRight },
-  { path: "/vendors", label: "Vendor", icon: Building2 },
+  { path: "/peminjaman", label: "Peminjaman", icon: Building2 }, // Building2 remains as a solid icon choice
   { path: "/maintenance", label: "Pemeliharaan", icon: Wrench },
+  { path: "/production-cost", label: "Biaya Produksi", icon: DollarSign },
   { path: "/warehouse-map", label: "Peta Gudang", icon: Map },
 ];
 
