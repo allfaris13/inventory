@@ -23,11 +23,31 @@ export function PinjamForm() {
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate API call
-    console.log("Submitting Loan Request:", formData);
-    setIsSubmitted(true);
+    
+    const payload = {
+      institution: formData.institution,
+      pic: formData.pic,
+      phone: formData.phone,
+      purpose: formData.purpose,
+      material_needs: formData.materialNeeds,
+      quantity: formData.quantity,
+      pickup_datetime: formData.pickupDateTime
+    };
+
+    try {
+      const res = await fetch('/api/borrowing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        setIsSubmitted(true);
+      }
+    } catch (err) {
+      console.error("Submission error:", err);
+    }
   };
 
   if (isSubmitted) {

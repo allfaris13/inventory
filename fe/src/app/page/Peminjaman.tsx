@@ -1,15 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { 
-  ExternalLink,
-  Filter,
   Package,
   Calendar,
   User,
   Download as DownloadIcon,
-  ClipboardList
+  ClipboardList,
+  ExternalLink,
+  Filter
 } from 'lucide-react';
 import {
   Table,
@@ -30,45 +30,66 @@ interface BorrowRequest {
   status: 'Pending' | 'Approved' | 'Borrowed' | 'Returned';
 }
 
-const INITIAL_REQUESTS: BorrowRequest[] = [
-  {
-    id: "REQ-001",
-    institution: "SMA Negeri 1 Bandung",
-    pic: "Bapak Ahmad",
-    items: ["Saklar Terakit", "Kabel Jumper AWG24"],
-    purpose: "Persiapan Lomba Robotik Nasional",
-    date: "16 Apr 2026",
-    status: "Pending"
-  },
-  {
-    id: "REQ-002",
-    institution: "Unit Robotika ITB",
-    pic: "Sarah Wijaya",
-    items: ["Sensor Ultra Sonic", "Motor Servo SM-200"],
-    purpose: "Penelitian Tugas Akhir",
-    date: "15 Apr 2026",
-    status: "Borrowed"
-  }
-];
-
 export function Peminjaman() {
-  const [requests, setRequests] = useState<BorrowRequest[]>(INITIAL_REQUESTS);
+  const [requests, setRequests] = useState<BorrowRequest[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'Requests' | 'Active' | 'QR'>('Requests');
 
-  const handleApprove = (id: string) => {
-    setRequests(requests.map(req => 
-      req.id === id ? { ...req, status: 'Borrowed' } : req
-    ));
+  const fetchBorrowing = () => {
+    setIsLoading(true);
+    fetch('/api/borrowing')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setRequests(data);
+        setIsLoading(false);
+      })
+      .catch(err => {
+        console.error("Fetch error:", err);
+        setIsLoading(false);
+      });
   };
 
-  const handleReject = (id: string) => {
-    setRequests(requests.filter(req => req.id !== id));
+  useEffect(() => {
+    fetchBorrowing();
+  }, []);
+
+  const handleApprove = async (id: number) => {
+    try {
+      const res = await fetch('/api/borrowing', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: id, status: 'Borrowed' })
+      });
+      if (res.ok) fetchBorrowing();
+    } catch (err) {
+      console.error("Update error:", err);
+    }
   };
 
-  const handleReturn = (id: string) => {
-     setRequests(requests.map(req => 
-      req.id === id ? { ...req, status: 'Returned' } : req
-    ));
+  const handleReject = async (id: number) => {
+    try {
+      const res = await fetch('/api/borrowing', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: id, status: 'Rejected' })
+      });
+      if (res.ok) fetchBorrowing();
+    } catch (err) {
+      console.error("Update error:", err);
+    }
+  };
+
+  const handleReturn = async (id: number) => {
+    try {
+      const res = await fetch('/api/borrowing', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: id, status: 'Returned' })
+      });
+      if (res.ok) fetchBorrowing();
+    } catch (err) {
+      console.error("Update error:", err);
+    }
   };
 
   const pendingRequests = requests.filter(r => r.status === 'Pending');
@@ -170,19 +191,19 @@ export function Peminjaman() {
                       </TableCell>
                       <TableCell className="py-6 px-8 text-right">
                          <div className="flex justify-end gap-2">
-                            <Button 
-                              onClick={() => handleApprove(req.id)}
-                              className="h-9 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase text-[9px] tracking-widest rounded-xl shadow-lg shadow-emerald-600/20"
-                            >
-                               Setujui
-                            </Button>
-                            <Button 
-                              onClick={() => handleReject(req.id)}
-                              variant="outline"
-                              className="h-9 px-4 border-border text-muted-foreground hover:text-red-400 hover:border-red-400/30 font-black uppercase text-[9px] tracking-widest rounded-xl"
-                            >
-                               Tolak
-                            </Button>
+                             <Button 
+                               onClick={() => handleApprove((req as any).real_id)}
+                               className="h-9 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase text-[9px] tracking-widest rounded-xl shadow-lg shadow-emerald-600/20"
+                             >
+                                Setujui
+                             </Button>
+                             <Button 
+                               onClick={() => handleReject((req as any).real_id)}
+                               variant="outline"
+                               className="h-9 px-4 border-border text-muted-foreground hover:text-red-400 hover:border-red-400/30 font-black uppercase text-[9px] tracking-widest rounded-xl"
+                             >
+                                Tolak
+                             </Button>
                          </div>
                       </TableCell>
                     </TableRow>
@@ -218,12 +239,12 @@ export function Peminjaman() {
                     </div>
                  </div>
                  <div className="flex gap-3 w-full md:w-auto">
-                    <Button 
-                      onClick={() => handleReturn(req.id)}
-                      className="flex-1 md:px-8 h-12 bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase text-[10px] tracking-widest rounded-xl shadow-xl shadow-indigo-600/20"
-                    >
-                       Konfirmasi Kembali
-                    </Button>
+                     <Button 
+                       onClick={() => handleReturn((req as any).real_id)}
+                       className="flex-1 md:px-8 h-12 bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase text-[10px] tracking-widest rounded-xl shadow-xl shadow-indigo-600/20"
+                     >
+                        Konfirmasi Kembali
+                     </Button>
                  </div>
               </Card>
            ))}

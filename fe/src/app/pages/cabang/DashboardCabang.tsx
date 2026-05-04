@@ -1,16 +1,10 @@
 import { useState, useEffect } from 'react';
 import { 
   Package, 
-  AlertTriangle, 
-  Truck, 
   Search, 
-  Plus, 
   ShoppingCart,
-  ArrowRightLeft,
   RefreshCcw,
-  CheckCircle2,
   X,
-  Send,
   ArrowDownToLine
 } from "lucide-react";
 import { Card } from '../../components/ui/card';

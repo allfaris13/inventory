@@ -12,6 +12,7 @@ import {
   TrendingUp,
   Wallet
 } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import './Dashboard.css';
 
 const chartData = [
@@ -32,6 +33,20 @@ const criticalItems = [
 ];
 
 export function Dashboard() {
+  const [stats, setStats] = useState<any>({
+    totalAssets: 0,
+    lowStock: 0,
+    chartData: [],
+    criticalItems: []
+  });
+
+  useEffect(() => {
+    fetch('/api/dashboard-stats')
+      .then(res => res.json())
+      .then(data => setStats(data))
+      .catch(err => console.error("Stats fetch error:", err));
+  }, []);
+
   return (
     <div className="dashboard-wrapper space-y-6 animate-in fade-in duration-500 transition-colors">
       {/* Header */}
@@ -46,7 +61,7 @@ export function Dashboard() {
           <div className="flex justify-between items-start p-6">
             <div className="space-y-2">
               <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">Total Aset</p>
-              <h2 className="text-3xl font-black text-foreground tracking-tight">1,847</h2>
+              <h2 className="text-3xl font-black text-foreground tracking-tight">{stats.totalAssets.toLocaleString()}</h2>
               <div className="flex items-center text-emerald-500 text-xs font-black gap-1">
                 <TrendingUp size={14} />
                 <span>+12%</span>
@@ -62,7 +77,7 @@ export function Dashboard() {
           <div className="flex justify-between items-start p-6">
             <div className="space-y-2">
               <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">Stok Rendah</p>
-              <h2 className="text-3xl font-black text-rose-500 tracking-tight">24</h2>
+              <h2 className="text-3xl font-black text-rose-500 tracking-tight">{stats.lowStock}</h2>
               <p className="text-muted-foreground text-[10px] font-black uppercase">Perlu Perhatian</p>
             </div>
             <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/10 text-rose-500 group-hover:scale-110 transition-transform">
@@ -142,7 +157,7 @@ export function Dashboard() {
           </div>
           <div className="px-2 pt-6 flex-1 h-[340px]">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+              <AreaChart data={stats.chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorMasuk" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
@@ -219,7 +234,7 @@ export function Dashboard() {
             <p className="text-xs text-muted-foreground font-bold tracking-widest">KOMPONEN STOK RENDAH</p>
           </div>
           <div className="p-6 space-y-7">
-            {criticalItems.map((item, idx) => (
+            {(stats.criticalItems || []).map((item: any, idx: number) => (
               <div key={idx} className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-xs font-black text-foreground uppercase">{item.name}</span>

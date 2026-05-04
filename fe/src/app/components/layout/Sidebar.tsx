@@ -8,7 +8,10 @@ import {
   Map,
   DollarSign,
   ShoppingBag,
-  X 
+  X,
+  Activity,
+  Truck,
+  Users
 } from "lucide-react";
 
 const navItems = [
@@ -20,6 +23,11 @@ const navItems = [
   { path: "/maintenance", label: "Pemeliharaan", icon: Wrench },
   { path: "/production-cost", label: "Biaya Produksi", icon: DollarSign },
   { path: "/warehouse-map", label: "Peta Gudang", icon: Map },
+  { path: "/distribution", label: "Distribusi", icon: Truck },
+];
+
+const adminItems = [
+  { path: "/audit-log", label: "Audit Log", icon: Activity },
 ];
 
 interface SidebarProps {
@@ -29,6 +37,9 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const location = useLocation();
+  const userStr = localStorage.getItem('user');
+  const user = userStr ? JSON.parse(userStr) : null;
+  const isSuperAdmin = user?.role === 'super_admin' || user?.email === 'admin@robogudang.com';
   
   return (
     <>
@@ -67,6 +78,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-1">
           {navItems.map((item) => {
+            // Hide Purchasing and Peminjaman for non-super_admins
+            if ((item.path === '/purchasing' || item.path === '/peminjaman') && !isSuperAdmin) {
+              return null;
+            }
+            
             const Icon = item.icon;
             const isActive = location.pathname === item.path || 
               (item.path !== "/" && location.pathname.startsWith(item.path));
@@ -89,6 +105,37 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               </Link>
             );
           })}
+
+          {isSuperAdmin && (
+            <>
+              <div className="px-4 py-2 mt-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                Akses Super Admin
+              </div>
+              {adminItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.path || 
+                  (item.path !== "/" && location.pathname.startsWith(item.path));
+                
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => onClose?.()}
+                    className={`
+                      flex items-center gap-3 px-4 py-3 rounded-lg transition-all
+                      ${isActive 
+                        ? 'bg-orange-500/10 text-orange-500 shadow-lg shadow-orange-500/20' 
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                      }
+                    `}
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span className="font-medium">{item.label}</span>
+                  </Link>
+                );
+              })}
+            </>
+          )}
         </nav>
         
         {/* Footer */}

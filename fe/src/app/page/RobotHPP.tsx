@@ -35,47 +35,26 @@ interface Robot {
   components: Component[];
 }
 
-// Mock Database Gudang
-const INVENTORY_SOURCE = [
-  { name: 'Sensor Lidar LDR-500', sku: 'LDR-500-A', price: 18750000, category: 'Elektronik' as const },
-  { name: 'Motor Stepper Industri', sku: 'SM-200-B', price: 4500000, category: 'Mekanik' as const },
-  { name: 'Papan Kontrol CB-X1', sku: 'CB-X1-E', price: 12500000, category: 'Elektronik' as const },
-  { name: 'Paket Baterai BP-3000', sku: 'BP-3000-D', price: 8200000, category: 'Baterai' as const },
-  { name: 'Modul Kamera HD', sku: 'CAM-HD-G', price: 3200000, category: 'Elektronik' as const },
-  { name: 'Perakit Gripper Robotik', sku: 'GRP-500-H', price: 24500000, category: 'Mekanik' as const },
-  { name: 'Motor Servo SM-200', sku: 'SV-200-F', price: 7800000, category: 'Mekanik' as const },
-  { name: 'Aktuator Pneumatik', sku: 'ACT-350-C', price: 5600000, category: 'Aktuator' as const },
-  { name: 'Roda Omni Industri', sku: 'WHL-OM-90', price: 1250000, category: 'Mekanik' as const },
-];
-
-const INITIAL_ROBOTS: Robot[] = [
-  {
-    id: 'RBT-001',
-    name: 'NeoCarrier X1',
-    model: 'Autonomous Logistics Droid',
-    image: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&q=80&w=400',
-    components: [
-      { name: 'Sensor Lidar LDR-500', sku: 'LDR-500-A', quantity: 2, unitPrice: 18750000, category: 'Elektronik' },
-      { name: 'Motor Stepper Industri', sku: 'SM-200-B', quantity: 4, unitPrice: 4500000, category: 'Mekanik' },
-      { name: 'Papan Kontrol CB-X1', sku: 'CB-X1-E', quantity: 1, unitPrice: 12500000, category: 'Elektronik' },
-      { name: 'Paket Baterai BP-3000', sku: 'BP-3000-D', quantity: 2, unitPrice: 8200000, category: 'Baterai' },
-    ]
-  },
-  {
-    id: 'RBT-002',
-    name: 'TitanGrip G-500',
-    model: 'Heavy Duty Assembly Arm',
-    image: 'https://images.unsplash.com/photo-1563206767-5b18f218e7de?auto=format&fit=crop&q=80&w=400',
-    components: [
-      { name: 'Perakit Gripper Robotik', sku: 'GRP-500-H', quantity: 1, unitPrice: 24500000, category: 'Mekanik' },
-      { name: 'Motor Servo SM-200', sku: 'SV-200-F', quantity: 6, unitPrice: 7800000, category: 'Mekanik' },
-      { name: 'Aktuator Pneumatik', sku: 'ACT-350-C', quantity: 4, unitPrice: 5600000, category: 'Aktuator' },
-    ]
-  }
-];
-
 export function RobotHPP() {
-  const [robots, setRobots] = useState<Robot[]>(INITIAL_ROBOTS);
+  const [robots, setRobots] = useState<Robot[]>([]);
+  const [inventorySource, setInventorySource] = useState<any[]>([]);
+  
+  useEffect(() => {
+    fetch('/api/inventory')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+           // map to format matching component
+           setInventorySource(data.map(d => ({
+             name: d.name,
+             sku: `INV-${d.id}`,
+             price: parseInt(d.unitPrice) || 0,
+             category: d.category
+           })));
+        }
+      })
+      .catch(err => console.error(err));
+  }, []);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
@@ -87,7 +66,7 @@ export function RobotHPP() {
   });
   const [newBOM, setNewBOM] = useState<Component[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [suggestions, setSuggestions] = useState<typeof INVENTORY_SOURCE>([]);
+  const [suggestions, setSuggestions] = useState<any[]>([]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -117,7 +96,7 @@ export function RobotHPP() {
   const handleSearchComponent = (query: string) => {
     setSearchQuery(query);
     if (query.length > 1) {
-      const matches = INVENTORY_SOURCE.filter(i => 
+      const matches = inventorySource.filter(i => 
         i.name.toLowerCase().includes(query.toLowerCase()) || 
         i.sku.toLowerCase().includes(query.toLowerCase())
       );
@@ -127,7 +106,7 @@ export function RobotHPP() {
     }
   };
 
-  const addComponentFromSource = (sourceItem: typeof INVENTORY_SOURCE[0]) => {
+  const addComponentFromSource = (sourceItem: any) => {
     const existingIdx = newBOM.findIndex(c => c.sku === sourceItem.sku);
     if (existingIdx >= 0) {
       const updated = [...newBOM];

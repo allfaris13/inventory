@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Progress } from '../../components/ui/progress';
-import { Plus, X, Search, Download, Eye, Filter, Package, Pencil } from 'lucide-react';
+import { Plus, X, Search, Download, Eye, Filter, Package, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 
@@ -98,28 +98,7 @@ export function Inventory() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const branchFilter = user.role === 'admin_cabang' ? `?branch_id=${user.branch_id}` : '';
-    fetch(`/api/inventory${branchFilter}`)
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          // Adapt DB fields to UI interface
-          const adapted = data.map(item => ({
-            id: item.id.toString(),
-            name: item.name,
-            category: item.category,
-            stock: item.stock,
-            maxStock: 100, 
-            condition: item.status || 'Baru',
-            location: item.location,
-            image: '',
-            type: item.type || 'mentah'
-          }));
-          setItems(adapted);
-        }
-      })
-      .catch(err => console.error("Fetch error:", err));
+    fetchInventory();
   }, []);
   
   const filtered = items.filter(item => {
@@ -151,43 +130,64 @@ export function Inventory() {
   const lowStockCount = items.filter((i: InventoryItem) => (i.stock / i.maxStock) < 0.25).length;
   const inRepairCount = items.filter((i: InventoryItem) => i.condition === 'Dalam Perbaikan').length;
 
-  const handleSaveItem = (e: React.FormEvent) => {
+  const handleSaveItem = async (e: React.FormEvent) => {
     e.preventDefault();
     const specs: Record<string, string> = {};
     specList.forEach(s => {
       if (s.key && s.value) specs[s.key] = s.value;
     });
 
-    const itemToSave = { ...newItem, specifications: specs };
+    const itemData = {
+      id: editingId ? parseInt(editingId) : undefined,
+      name: newItem.name,
+      category: newItem.category,
+      status: newItem.condition,
+      stock: newItem.stock,
+      location: newItem.location,
+    };
 
-    // Logic for automatic stock deduction if it's a "Matang" item being added (not edited)
-    if (!editingId && newItem.type === 'matang') {
-      const updatedItems = [...items];
-      const qty = newItem.stock || 1;
-
-      // Dynamic Assembly Deductions
-      const recipe = ASSEMBLY_RECIPES.find(r => 
-        newItem.name.toLowerCase().includes(r.productName.toLowerCase())
-      );
-
-      if (recipe) {
-        recipe.components.forEach(comp => {
-          updatedItems.forEach(item => {
-            if (item.name.toLowerCase().includes(comp.nameMatch.toLowerCase()) && item.type === 'mentah') {
-              item.stock = Math.max(0, item.stock - (comp.qty * qty));
-            }
-          });
-        });
-      }
-      
-      setItems([{ ...itemToSave, id: Date.now().toString() }, ...updatedItems]);
-    } else if (editingId) {
-      setItems(items.map(item => item.id === editingId ? itemToSave : item));
-    } else {
-      setItems([{ ...itemToSave, id: Date.now().toString() }, ...items]);
-    }
+    const method = editingId ? 'PUT' : 'POST';
     
-    closeModal();
+    try {
+      const res = await fetch('/api/inventory', {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(itemData)
+      });
+      
+      if (res.ok) {
+        // Refresh items from backend
+        fetchInventory();
+        closeModal();
+      }
+    } catch (err) {
+      console.error("Save error:", err);
+    }
+  };
+
+  const fetchInventory = () => {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const branchFilter = user.role === 'admin_cabang' ? `?branch_id=${user.branch_id}` : '';
+    fetch(`/api/inventory${branchFilter}`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          const adapted = data.map(item => ({
+            id: item.id.toString(),
+            name: item.name,
+            category: item.category,
+            stock: item.stock,
+            maxStock: 100, 
+            condition: item.status || 'Baru',
+            location: item.location,
+            image: '',
+            type: item.type || 'mentah',
+            branch_name: item.branch_name
+          }));
+          setItems(adapted);
+        }
+      })
+      .catch(err => console.error("Fetch error:", err));
   };
 
   const openAddModal = (type: 'mentah' | 'matang') => {
@@ -248,7 +248,18 @@ export function Inventory() {
   };
 
   const removeSpecField = (index: number) => {
-    setSpecList(specList.filter((_, i) => i !== index));
+    const newList = specList.filter((_, i) => i !== index);
+    setSpecList(newList);
+  };
+
+  const handleDeleteItem = async (id: string) => {
+    if (!window.confirm("Hapus barang ini?")) return;
+    try {
+      const res = await fetch(`/api/inventory?id=${id}`, { method: 'DELETE' });
+      if (res.ok) fetchInventory();
+    } catch (err) {
+      console.error("Delete error:", err);
+    }
   };
 
 
@@ -284,6 +295,15 @@ export function Inventory() {
             </button>
           )}
             </>
+          )}
+          {JSON.parse(localStorage.getItem('user') || '{}').role === 'admin_cabang' && (
+            <button 
+              onClick={() => navigate('/distribution')}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-lg font-bold text-xs transition-all shadow-lg shadow-emerald-500/20 active:scale-95"
+            >
+              <Plus size={16} />
+              Minta Barang ke Pusat
+            </button>
           )}
           <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-muted hover:bg-muted/80 text-foreground px-4 py-2.5 rounded-lg font-bold text-xs transition-all border border-border active:scale-95">
             <Download size={16} />
@@ -403,6 +423,13 @@ export function Inventory() {
                           title="Edit"
                         >
                           <Pencil size={18} />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteItem(item.id)}
+                          className="p-1.5 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 rounded-md transition-colors"
+                          title="Hapus"
+                        >
+                          <Trash2 size={18} />
                         </button>
                         <button 
                           onClick={() => navigate(`/inventory/${item.id}`)}

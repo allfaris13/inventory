@@ -1,7 +1,7 @@
 import { Card } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { ArrowDownCircle, ArrowUpCircle, Calendar, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import {
@@ -102,14 +102,42 @@ const transactionData = [
 ];
 
 export function Transactions() {
-  const [items, setItems] = useState(transactionData);
+  const [items, setItems] = useState<any[]>([]);
+  const [inventory, setInventory] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'Semua' | 'Masuk' | 'Teknisi' | 'Prepare'>('Semua');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showNota, setShowNota] = useState(false);
   const [lastTxn, setLastTxn] = useState<any>(null);
+  
+  const userStr = localStorage.getItem('user');
+  const user = userStr ? JSON.parse(userStr) : null;
+  const isSuperAdmin = user?.role === 'super_admin' || user?.email === 'admin@robogudang.com';
+
+  const fetchTransactions = () => {
+    setIsLoading(true);
+    const branchFilter = !isSuperAdmin ? `?branch_id=${user?.branch_id}` : '';
+    fetch(`/api/transactions${branchFilter}`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setItems(data);
+        setIsLoading(false);
+      })
+      .catch(err => {
+        console.error("Fetch error:", err);
+        setIsLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    fetchTransactions();
+    fetch('/api/inventory')
+      .then(res => res.json())
+      .then(data => setInventory(data));
+  }, []);
   const [newTxn, setNewTxn] = useState({
     type: 'Masuk',
-    item: 'Saklar On/Off Mini',
+    inventory_id: '',
     quantity: 1,
     vendor: '',
     recipient: '',
@@ -140,28 +168,30 @@ export function Transactions() {
     setIsModalOpen(true);
   };
 
-  const handleAddTransaction = (e: React.FormEvent) => {
+  const handleAddTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
-    const id = `RO-${new Date().getFullYear()}-${String(items.length + 1).padStart(4, '0')}`;
-    const date = new Date().toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(/\./g, ':');
-    
-    const newEntry = {
-      id,
-      date,
+    const payload = {
+      inventory_id: parseInt(newTxn.inventory_id),
       type: newTxn.type,
-      item: newTxn.item,
       quantity: newTxn.quantity,
-      location: newTxn.location,
-      vendor: newTxn.vendor || 'Internal',
-      recipient: newTxn.recipient,
-      target: newTxn.target,
-      status: newTxn.status
+      reason: newTxn.type === 'Masuk' ? newTxn.vendor : newTxn.recipient
     };
 
-    setItems([newEntry, ...items]);
-    setLastTxn(newEntry);
-    setIsModalOpen(false);
-    setShowNota(true);
+    try {
+      const res = await fetch('/api/transactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        fetchTransactions();
+        setIsModalOpen(false);
+        // We don't show real ID yet here but can fetch it if needed for the nota
+        // For now just refresh
+      }
+    } catch (err) {
+      console.error("Save error:", err);
+    }
   };
 
   return (
@@ -172,33 +202,37 @@ export function Transactions() {
           <p className="text-muted-foreground mt-1 text-sm font-bold tracking-widest uppercase">PERGERAKAN INVENTARIS MASUK DAN KELUAR</p>
         </div>
         <div className="flex gap-2">
-          {activeTab === 'Masuk' || activeTab === 'Semua' ? (
-            <Button 
-              onClick={() => handleOpenAddModal('Masuk')}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white gap-2 h-11 px-4 font-black shadow-lg shadow-emerald-500/20 rounded-xl uppercase text-[10px] tracking-widest"
-            >
-              <ArrowDownCircle size={16} />
-              Catat Masuk
-            </Button>
-          ) : null}
-          {activeTab === 'Teknisi' || activeTab === 'Semua' ? (
-            <Button 
-              onClick={() => handleOpenAddModal('Keluar', 'Teknisi')}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white gap-2 h-11 px-4 font-black shadow-lg shadow-indigo-500/20 rounded-xl uppercase text-[10px] tracking-widest"
-            >
-              <ArrowUpCircle size={16} />
-              Kirim ke Teknisi
-            </Button>
-          ) : null}
-          {activeTab === 'Prepare' || activeTab === 'Semua' ? (
-            <Button 
-              onClick={() => handleOpenAddModal('Keluar', 'Prepare')}
-              className="bg-purple-600 hover:bg-purple-500 text-white gap-2 h-11 px-4 font-black shadow-lg shadow-purple-500/20 rounded-xl uppercase text-[10px] tracking-widest"
-            >
-              <ArrowUpCircle size={16} />
-              Kirim ke Prepare
-            </Button>
-          ) : null}
+          {isSuperAdmin && (
+            <>
+              {activeTab === 'Masuk' || activeTab === 'Semua' ? (
+                <Button 
+                  onClick={() => handleOpenAddModal('Masuk')}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white gap-2 h-11 px-4 font-black shadow-lg shadow-emerald-500/20 rounded-xl uppercase text-[10px] tracking-widest"
+                >
+                  <ArrowDownCircle size={16} />
+                  Catat Masuk
+                </Button>
+              ) : null}
+              {activeTab === 'Teknisi' || activeTab === 'Semua' ? (
+                <Button 
+                  onClick={() => handleOpenAddModal('Keluar', 'Teknisi')}
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white gap-2 h-11 px-4 font-black shadow-lg shadow-indigo-500/20 rounded-xl uppercase text-[10px] tracking-widest"
+                >
+                  <ArrowUpCircle size={16} />
+                  Kirim ke Teknisi
+                </Button>
+              ) : null}
+              {activeTab === 'Prepare' || activeTab === 'Semua' ? (
+                <Button 
+                  onClick={() => handleOpenAddModal('Keluar', 'Prepare')}
+                  className="bg-purple-600 hover:bg-purple-500 text-white gap-2 h-11 px-4 font-black shadow-lg shadow-purple-500/20 rounded-xl uppercase text-[10px] tracking-widest"
+                >
+                  <ArrowUpCircle size={16} />
+                  Kirim ke Prepare
+                </Button>
+              ) : null}
+            </>
+          )}
         </div>
       </div>
 
@@ -358,16 +392,18 @@ export function Transactions() {
             </div>
             
             <form onSubmit={handleAddTransaction} className="p-10 space-y-6">
-              <div className="space-y-2">
+               <div className="space-y-2">
                   <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Pilih Barang</label>
                   <select 
                     className="flex h-12 w-full rounded-xl border border-border bg-card px-3 py-1 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary font-bold shadow-sm"
-                    value={newTxn.item}
-                    onChange={e => setNewTxn({...newTxn, item: e.target.value})}
+                    value={newTxn.inventory_id}
+                    onChange={e => setNewTxn({...newTxn, inventory_id: e.target.value})}
+                    required
                   >
-                    <option className="bg-card">Saklar On/Off Mini</option>
-                    <option className="bg-card">Kabel Jumper AWG24 (Meter)</option>
-                    <option className="bg-card">Saklar Terakit</option>
+                    <option value="" disabled className="bg-card">Pilih Barang...</option>
+                    {inventory.map(i => (
+                      <option key={i.id} value={i.id} className="bg-card">{i.name}</option>
+                    ))}
                   </select>
                 </div>
 

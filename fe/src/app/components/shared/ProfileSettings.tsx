@@ -12,11 +12,12 @@ import './ProfileSettings.css';
 
 export function ProfileSettings() {
   const [saveStatus, setSaveStatus] = useState('');
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
   const [formData, setFormData] = useState({
-    fullName: 'Sarah Mitchell',
-    employeeId: 'EMP-ROBO-1029',
-    department: 'Manajer Gudang Operasional',
-    email: 'sarah.mitchell@robogudang.com',
+    fullName: user.full_name || 'Sarah Mitchell',
+    employeeId: user.id ? `EMP-ROBO-${user.id}` : 'EMP-ROBO-1029',
+    department: user.role === 'super_admin' ? 'Super Administrator' : 'Staff Operasional',
+    email: user.email || 'user@robogudang.com',
     phone: '+62 812-3456-7890'
   });
 
@@ -139,7 +140,7 @@ export function ProfileSettings() {
             </div>
             <div className="stats-item">
               <div className="stats-label">Level Otoritas</div>
-              <div className="stats-value" style={{ color: '#00f3ff' }}>SUPER-ADMIN</div>
+              <div className="stats-value" style={{ color: '#00f3ff' }}>{(user.role || 'GUEST').toUpperCase()}</div>
             </div>
           </div>
         </div>

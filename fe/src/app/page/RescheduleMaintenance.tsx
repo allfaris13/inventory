@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { Card } from "../components/ui/card";
 import { ArrowLeft, Calendar, User, AlertCircle } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export function RescheduleMaintenance() {
   const { id } = useParams();
@@ -9,6 +9,26 @@ export function RescheduleMaintenance() {
   const [newRepairDate, setNewRepairDate] = useState("");
   const [newReturnDate, setNewReturnDate] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [taskName, setTaskName] = useState("Memuat data...");
+
+  useEffect(() => {
+    fetch('/api/maintenance')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          const found = data.find((t: any) => t.id == id);
+          if (found) {
+            setTaskName(found.task_name);
+          } else {
+            setTaskName("Tugas tidak ditemukan");
+          }
+        }
+      })
+      .catch(err => {
+         console.error(err);
+         setTaskName("Gagal memuat data");
+      });
+  }, [id]);
 
   const handleSave = async () => {
     if (!newRepairDate) {
@@ -24,7 +44,6 @@ export function RescheduleMaintenance() {
     }, 1000);
   };
 
-  const taskName = id === "1" ? "Array Sensor Lidar - Zona A" : id === "2" ? "Kontroler Lengan Robot - Zona B" : "Modul Kamera Visual";
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">

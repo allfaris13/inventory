@@ -13,36 +13,35 @@ import {
   Wrench as ToolsIcon
 } from "lucide-react";
 
-const maintenanceData = {
-  1: {
-    id: "MNT-2394",
-    component: "Array Sensor Lidar - Zona A",
-    sku: "LDR-500-A",
-    type: "Kalibrasi Berkala",
-    priority: "Perbaikan Teknis",
-    status: "Dalam Proses",
-    technician: "Budi Santoso",
-    repairDate: "2 April 2026",
-    returnDate: "5 April 2026",
-    progress: 45,
-    steps: [
-      { id: 1, title: "Inisialisasi sistem diagnostik", status: "finished" },
-      { id: 2, title: "Pembersihan fisik unit sensor", status: "finished" },
-      { id: 3, title: "Kalibrasi titik nol derajat", status: "active" },
-      { id: 4, title: "Verifikasi data output terhadap standar", status: "pending" },
-      { id: 5, title: "Uji coba operasional penuh", status: "pending" },
-    ],
-    tools: ["Calibration Kit L-Series", "Cleaning Fluid X1", "Software LidarConnect v4.2"],
-    notes: "Sensor menunjukkan drift sekitar 2% pada suhu tinggi. Perlu perhatian ekstra pada titik kalibrasi 90 derajat."
-  }
-};
-
 export function MaintenanceDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  
-  // Use first item as fallback
-  const task = maintenanceData[Number(id) as keyof typeof maintenanceData] || maintenanceData[1];
+  const [task, setTask] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/maintenance')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+           const found = data.find((t: any) => t.id == id);
+           setTask(found);
+        }
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, [id]);
+
+  if (loading) {
+     return <div className="p-8 text-white">Loading...</div>;
+  }
+
+  if (!task) {
+     return <div className="p-8 text-white">Data tidak ditemukan.</div>;
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -58,7 +57,7 @@ export function MaintenanceDetail() {
 
         <div className="flex justify-between items-end">
           <div className="space-y-1">
-            <h1 className="text-4xl font-bold text-white tracking-tight">{task.component}</h1>
+            <h1 className="text-4xl font-bold text-white tracking-tight">{task.task_name}</h1>
             <div className="flex items-center gap-3">
                <p className="text-slate-400 font-medium tracking-widest text-xs uppercase">ID: {task.id}</p>
                <span className="text-slate-800">•</span>
@@ -97,25 +96,22 @@ export function MaintenanceDetail() {
                </div>
             </div>
             
-            <Progress value={task.progress} className="h-2 bg-slate-800 mb-10" />
+            <Progress value={50} className="h-2 bg-slate-800 mb-10" />
 
             <div className="space-y-4">
-              {task.steps.map((step) => (
+              {[1, 2, 3].map((stepId) => (
                 <div 
-                  key={step.id} 
-                  className={`p-4 rounded-xl border flex items-center justify-between transition-all ${step.status === 'finished' ? 'bg-emerald-500/5 border-emerald-500/20' : step.status === 'active' ? 'bg-indigo-500/10 border-indigo-500/50 ring-1 ring-indigo-500/20' : 'bg-slate-900/40 border-slate-800 opacity-50'}`}
+                  key={stepId} 
+                  className={`p-4 rounded-xl border flex items-center justify-between transition-all ${stepId === 1 ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-slate-900/40 border-slate-800 opacity-50'}`}
                 >
                   <div className="flex items-center gap-4">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${step.status === 'finished' ? 'bg-emerald-500 text-slate-950' : step.status === 'active' ? 'bg-indigo-500 text-white' : 'bg-slate-800 text-slate-500'}`}>
-                      {step.status === 'finished' ? <CheckCircle2 size={18} /> : step.id}
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${stepId === 1 ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-500'}`}>
+                      {stepId === 1 ? <CheckCircle2 size={18} /> : stepId}
                     </div>
-                    <span className={`font-semibold ${step.status === 'active' ? 'text-white' : 'text-slate-300'}`}>
-                       {step.title}
+                    <span className={`font-semibold ${stepId === 1 ? 'text-white' : 'text-slate-300'}`}>
+                       Step {stepId}
                     </span>
                   </div>
-                  {step.status === 'active' && (
-                     <Badge className="bg-indigo-500 text-white animate-pulse">On-Process</Badge>
-                  )}
                 </div>
               ))}
             </div>
@@ -126,7 +122,7 @@ export function MaintenanceDetail() {
              <div className="p-5 rounded-xl bg-orange-500/5 border border-orange-500/20 flex gap-4">
                 <AlertTriangle className="text-orange-500 shrink-0" size={24} />
                 <p className="text-slate-300 text-sm leading-relaxed font-medium italic">
-                   "{task.notes}"
+                   "{task.notes || 'Tidak ada catatan tambahan.'}"
                 </p>
              </div>
           </Card>
@@ -154,7 +150,7 @@ export function MaintenanceDetail() {
                   </div>
                   <div>
                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Tanggal Perbaikan</p>
-                     <p className="text-sm font-bold text-slate-200">{task.repairDate}</p>
+                     <p className="text-sm font-bold text-slate-200">{task.schedule_date}</p>
                   </div>
                </div>
 
@@ -164,7 +160,7 @@ export function MaintenanceDetail() {
                   </div>
                   <div>
                      <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Target Kembali</p>
-                     <p className="text-sm font-bold text-slate-200">{task.returnDate}</p>
+                     <p className="text-sm font-bold text-slate-200">-</p>
                   </div>
                </div>
             </div>
@@ -172,7 +168,7 @@ export function MaintenanceDetail() {
             <div className="pt-6 border-t border-slate-800">
                <p className="text-xs font-bold text-slate-500 uppercase mb-4 tracking-widest px-2">Sparepart Dibutuhkan</p>
                <div className="flex flex-wrap gap-2 px-2">
-                  {task.tools.map(tool => (
+                  {(task.tools || []).map((tool: string) => (
                      <Badge key={tool} variant="outline" className="border-slate-800 text-slate-400 bg-slate-900/50 font-medium">
                         {tool}
                      </Badge>

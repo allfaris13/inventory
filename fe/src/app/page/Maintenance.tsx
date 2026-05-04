@@ -20,9 +20,16 @@ export function Maintenance() {
   const navigate = useNavigate();
   const [tasks, setTasks] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [inventory, setInventory] = useState<any[]>([]);
 
-  useEffect(() => {
-    fetch('/api/maintenance')
+  const userStr = localStorage.getItem('user');
+  const user = userStr ? JSON.parse(userStr) : null;
+  const isSuperAdmin = user?.role === 'super_admin' || user?.email === 'admin@robogudang.com';
+
+  const fetchMaintenance = () => {
+    setIsLoading(true);
+    const branchFilter = !isSuperAdmin ? `?branch_id=${user?.branch_id}` : '';
+    fetch(`/api/maintenance${branchFilter}`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -30,11 +37,11 @@ export function Maintenance() {
             id: item.id,
             component: item.asset,
             type: item.task,
-            priority: item.priority === 'Kritis' ? 'Perbaikan Teknis' : 'Gudang',
+            priority: item.priority === 'Critical' ? 'Perbaikan Teknis' : 'Gudang',
             status: item.status || 'Dijadwalkan',
             repairDate: new Date(item.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
-            returnDate: "-", // Fallback for old data
-            technician: item.assigned_to || "Belum Ditentukan"
+            returnDate: "-", 
+            technician: item.technician || "Belum Ditentukan"
           }));
           setTasks(adapted);
         }
@@ -44,10 +51,18 @@ export function Maintenance() {
         console.error("Fetch error:", err);
         setIsLoading(false);
       });
+  };
+
+  useEffect(() => {
+    fetchMaintenance();
+    const branchFilter = !isSuperAdmin ? `?branch_id=${user?.branch_id}` : '';
+    fetch(`/api/inventory${branchFilter}`)
+      .then(res => res.json())
+      .then(data => setInventory(data));
   }, []);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newTask, setNewTask] = useState({
-    component: '',
+    inventory_id: '',
     type: '',
     priority: 'Gudang',
     repairDate: '',
@@ -55,30 +70,38 @@ export function Maintenance() {
     technicianName: ''
   });
 
-  const handleSaveSchedule = (e: React.FormEvent) => {
+  const handleSaveSchedule = async (e: React.FormEvent) => {
     e.preventDefault();
-    const id = tasks.length + 1;
-    const newTaskEntry = {
-      id,
-      component: newTask.component,
-      type: newTask.type,
-      priority: newTask.priority,
-      status: 'Dijadwalkan',
-      repairDate: new Date(newTask.repairDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
-      returnDate: new Date(newTask.returnDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
-      technician: newTask.technicianName
+    const payload = {
+      inventory_id: parseInt(newTask.inventory_id),
+      task_name: newTask.type,
+      date: newTask.repairDate,
+      priority: newTask.priority === 'Perbaikan Teknis' ? 'Critical' : 'Low',
+      technician: newTask.technicianName,
+      type: "create"
     };
-    
-    setTasks([newTaskEntry, ...tasks]);
-    setIsModalOpen(false);
-    setNewTask({
-      component: '',
-      type: '',
-      priority: 'Gudang',
-      repairDate: '',
-      returnDate: '',
-      technicianName: ''
-    });
+
+    try {
+      const res = await fetch('/api/maintenance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        fetchMaintenance();
+        setIsModalOpen(false);
+        setNewTask({
+          inventory_id: '',
+          type: '',
+          priority: 'Gudang',
+          repairDate: '',
+          returnDate: '',
+          technicianName: ''
+        });
+      }
+    } catch (err) {
+      console.error("Save error:", err);
+    }
   };
 
   const technicalTasks = tasks.filter(t => t.priority === 'Perbaikan Teknis').length;
@@ -259,14 +282,18 @@ export function Maintenance() {
             <form onSubmit={handleSaveSchedule} className="p-10 space-y-8">
               <div className="grid grid-cols-2 gap-8">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] ml-1">Nama Perangkat</label>
-                  <Input 
+                  <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] ml-1">Pilih Perangkat</label>
+                  <select 
                     required 
-                    placeholder="Contoh: Sensor Lidar Zona A" 
-                    className="bg-muted/30 border-border h-12 text-foreground font-bold rounded-xl"
-                    value={newTask.component}
-                    onChange={e => setNewTask({...newTask, component: e.target.value})}
-                  />
+                    className="flex h-12 w-full rounded-xl border border-border bg-muted/30 px-4 py-1 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary font-bold"
+                    value={newTask.inventory_id}
+                    onChange={e => setNewTask({...newTask, inventory_id: e.target.value})}
+                  >
+                    <option value="" disabled className="bg-card">Pilih Barang...</option>
+                    {inventory.map(item => (
+                      <option key={item.id} value={item.id} className="bg-card">{item.name}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] ml-1">Kategori (Prioritas)</label>

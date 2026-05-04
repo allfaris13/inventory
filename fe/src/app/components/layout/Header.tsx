@@ -25,6 +25,12 @@ export function Header({ onMenuClick }: HeaderProps) {
   const [notificationCount] = useState(notifications.length);
   const { theme, toggleTheme } = useTheme();
 
+  const userStr = localStorage.getItem('user');
+  const user = userStr ? JSON.parse(userStr) : null;
+  const isSuperAdmin = user?.role === 'super_admin' || user?.email === 'admin@robogudang.com';
+  const fullName = user?.full_name || 'Guest';
+  const displayRole = isSuperAdmin ? 'Super Administrator' : 'Admin Cabang';
+
   return (
     <header className="h-16 bg-card border-b border-border px-4 md:px-6 flex items-center justify-between shadow-sm transition-colors sticky top-0 z-40">
       <div className="flex items-center gap-2 md:gap-4">
@@ -87,8 +93,8 @@ export function Header({ onMenuClick }: HeaderProps) {
                 <User className="w-4 h-4 text-primary-foreground" />
               </div>
               <div className="text-left hidden lg:block">
-                <p className="text-sm font-medium text-foreground">Sarah Mitchell</p>
-                <p className="text-xs text-muted-foreground">Manajer Gudang</p>
+                <p className="text-sm font-medium text-foreground">{fullName}</p>
+                <p className="text-xs text-muted-foreground">{displayRole}</p>
               </div>
             </button>
           </DropdownMenuTrigger>
@@ -96,9 +102,11 @@ export function Header({ onMenuClick }: HeaderProps) {
             <DropdownMenuItem asChild className="cursor-pointer hover:bg-muted">
               <Link to="/profile-settings" className="w-full">Pengaturan Profil</Link>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild className="cursor-pointer hover:bg-muted">
-              <Link to="/system-preferences" className="w-full">Preferensi Sistem</Link>
-            </DropdownMenuItem>
+            {isSuperAdmin && (
+              <DropdownMenuItem asChild className="cursor-pointer hover:bg-muted">
+                <Link to="/manajemen-cabang" className="w-full text-indigo-500 font-bold">Manajemen Cabang</Link>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem 
               onClick={() => {
                 localStorage.removeItem('user');
