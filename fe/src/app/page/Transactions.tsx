@@ -14,97 +14,12 @@ import {
 } from "../components/ui/table";
 import { Printer, CheckCircle2 } from "lucide-react";
 
-const transactionData = [
-  {
-    id: "TXN-2024-001",
-    date: "31 Mar 2026 09:23",
-    type: "Masuk",
-    item: "Saklar On/Off Mini",
-    quantity: 50,
-    location: "Zona A - Laci 1",
-    vendor: "RoboTech Industries",
-    recipient: "Logistik",
-    target: "Gudang",
-    status: "Selesai",
-  },
-  {
-    id: "TXN-2024-002",
-    date: "31 Mar 2026 11:45",
-    type: "Keluar",
-    item: "Kabel Jumper AWG24 (Meter)",
-    quantity: 15,
-    location: "Jalur Perakitan 2",
-    vendor: "Internal",
-    recipient: "Budi Teknisi",
-    target: "Teknisi",
-    status: "Selesai",
-  },
-  {
-    id: "TXN-2024-003",
-    date: "30 Mar 2026 14:12",
-    type: "Masuk",
-    item: "Paket Baterai BP-3000",
-    quantity: 30,
-    location: "Zona C - Rak 3",
-    vendor: "PowerCell Solutions",
-    status: "Selesai",
-  },
-  {
-    id: "TXN-2024-004",
-    date: "30 Mar 2026 16:30",
-    type: "Keluar",
-    item: "Motor Servo SM-200",
-    quantity: 8,
-    location: "Jalur Perakitan 1",
-    vendor: "Transfer Internal",
-    status: "Selesai",
-  },
-  {
-    id: "TXN-2024-005",
-    date: "29 Mar 2026 10:05",
-    type: "Masuk",
-    item: "Papan Kontrol CB-X1",
-    quantity: 45,
-    location: "Zona B - Rak 15",
-    vendor: "Circuit Masters Ltd",
-    status: "Selesai",
-  },
-  {
-    id: "TXN-2024-006",
-    date: "29 Mar 2026 13:20",
-    type: "Keluar",
-    item: "Aktuator Pneumatik",
-    quantity: 12,
-    location: "Jalur Perakitan 3",
-    vendor: "Transfer Internal",
-    status: "Dalam Proses",
-  },
-  {
-    id: "TXN-2024-007",
-    date: "28 Mar 2026 08:45",
-    type: "Masuk",
-    item: "Modul Kamera HD",
-    quantity: 25,
-    location: "Zona C - Rak 7",
-    vendor: "Vision Tech Components",
-    status: "Selesai",
-  },
-  {
-    id: "TXN-2024-008",
-    date: "28 Mar 2026 15:10",
-    type: "Keluar",
-    item: "Perakit Gripper Robotik",
-    quantity: 6,
-    location: "Jalur Perakitan 2",
-    vendor: "Transfer Internal",
-    status: "Selesai",
-  },
-];
+
 
 export function Transactions() {
   const [items, setItems] = useState<any[]>([]);
   const [inventory, setInventory] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+
   const [activeTab, setActiveTab] = useState<'Semua' | 'Masuk' | 'Teknisi' | 'Prepare'>('Semua');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showNota, setShowNota] = useState(false);
@@ -115,17 +30,15 @@ export function Transactions() {
   const isSuperAdmin = user?.role === 'super_admin' || user?.email === 'admin@robogudang.com';
 
   const fetchTransactions = () => {
-    setIsLoading(true);
+
     const branchFilter = !isSuperAdmin ? `?branch_id=${user?.branch_id}` : '';
     fetch(`/api/transactions${branchFilter}`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) setItems(data);
-        setIsLoading(false);
       })
       .catch(err => {
         console.error("Fetch error:", err);
-        setIsLoading(false);
       });
   };
 

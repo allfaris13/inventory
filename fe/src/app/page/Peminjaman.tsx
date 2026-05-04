@@ -32,20 +32,20 @@ interface BorrowRequest {
 
 export function Peminjaman() {
   const [requests, setRequests] = useState<BorrowRequest[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+
   const [activeTab, setActiveTab] = useState<'Requests' | 'Active' | 'QR'>('Requests');
 
   const fetchBorrowing = () => {
-    setIsLoading(true);
+
     fetch('/api/borrowing')
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) setRequests(data);
-        setIsLoading(false);
+
       })
       .catch(err => {
         console.error("Fetch error:", err);
-        setIsLoading(false);
+
       });
   };
 

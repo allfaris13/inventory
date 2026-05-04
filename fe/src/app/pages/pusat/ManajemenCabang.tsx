@@ -6,7 +6,6 @@ import {
   Building2, 
   Mail, 
   Lock, 
-  Plus,
   X,
   CheckCircle2,
   AlertCircle

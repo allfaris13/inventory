@@ -2,8 +2,6 @@ import { useState, useEffect } from 'react';
 import { 
   ArrowLeftRight, 
   Plus, 
-  CheckCircle2, 
-  XCircle, 
   Clock, 
   Package, 
   Building2,

@@ -26,57 +26,10 @@ interface InventoryItem {
   specifications?: Record<string, string>;
 }
 
-const INITIAL_INVENTORY: InventoryItem[] = [
-  { 
-    id: '1', 
-    name: 'Saklar On/Off Mini', 
-    category: 'Elektronik', 
-    stock: 120, 
-    maxStock: 500, 
-    condition: 'Baru', 
-    location: 'Zona A - Laci 1', 
-    type: 'mentah',
-    image: 'https://images.unsplash.com/photo-1558002038-103792e01a8d?auto=format&fit=crop&q=80&w=200',
-    specifications: { "Tipe": "Rocker Switch", "Rating": "3A 250V" }
-  },
-  { 
-    id: '2', 
-    name: 'Kabel Jumper AWG24 (Meter)', 
-    category: 'Kelistrikan', 
-    stock: 50, 
-    maxStock: 200, 
-    condition: 'Baru', 
-    location: 'Zona B - Rak Kabel', 
-    type: 'mentah', 
-    image: 'https://images.unsplash.com/photo-1558486012-817176f84c6d?auto=format&fit=crop&q=80&w=200' 
-  },
-  { 
-    id: '3', 
-    name: 'Saklar Terakit', 
-    category: 'Perakitan', 
-    stock: 15, 
-    maxStock: 100, 
-    condition: 'Baru', 
-    location: 'Zona Matang - Rak 1', 
-    type: 'matang', 
-    image: 'https://images.unsplash.com/photo-1591485423007-765bde4139ef?auto=format&fit=crop&q=80&w=200' 
-  }
-];
-
-const ASSEMBLY_RECIPES = [
-  {
-    productName: 'Saklar Terakit',
-    components: [
-      { nameMatch: 'Saklar On/Off', qty: 1 },
-      { nameMatch: 'Kabel Jumper', qty: 1 }
-    ]
-  }
-];
-
 export function Inventory() {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'mentah' | 'matang'>('mentah');
-  const [items, setItems] = useState<InventoryItem[]>(INITIAL_INVENTORY);
+  const [items, setItems] = useState<InventoryItem[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newItem, setNewItem] = useState<InventoryItem>({
     id: '',
@@ -514,17 +467,7 @@ export function Inventory() {
                     value={newItem.name}
                     onChange={e => setNewItem({...newItem, name: e.target.value})}
                   />
-                  {!editingId && newItem.type === 'matang' && newItem.name && ASSEMBLY_RECIPES.some(r => newItem.name.toLowerCase().includes(r.productName.toLowerCase())) && (
-                    <div className="mt-2 p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl animate-in slide-in-from-top-2 duration-300">
-                       <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-2">
-                         <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
-                         Auto-Deduction Terdeteksi
-                       </p>
-                       <p className="text-[11px] text-muted-foreground mt-1">
-                         Menyimpan barang ini akan memotong stok <b>Saklar</b> dan <b>Kabel</b> di tab Mentah secara otomatis.
-                       </p>
-                    </div>
-                  )}
+
                 </div>
 
                 <div className="grid grid-cols-2 gap-6 mb-6">

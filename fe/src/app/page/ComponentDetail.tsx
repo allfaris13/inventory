@@ -5,68 +5,51 @@ import { Badge } from "../components/ui/badge";
 import { ArrowLeft, Download } from "lucide-react";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 
-const componentDetails = {
-  "LDR-500-A": {
-    sku: "LDR-500-A",
-    name: "Sensor Lidar LDR-500",
-    category: "Elektronik",
-    condition: "Baru",
-    stock: 8,
-    maxStock: 50,
-    location: "Zona A - Rak 12",
-    supplier: "RoboTech Industries",
-    unitPrice: "Rp 18.750.000",
-    totalValue: "Rp 150.000.000",
-    lastRestocked: "15 Maret 2026",
-    specifications: {
-      "Jangkauan Deteksi": "0.1m - 100m",
-      "Akurasi": "±2cm",
-      "Kecepatan Pemindaian": "10 Hz",
-      "Panjang Gelombang": "905 nm",
-      "Catu Daya": "12-24V DC",
-      "Suhu Operasi": "-20°C hingga 60°C",
-      "Berat": "850g",
-      "Antarmuka": "Ethernet, CAN Bus",
-    },
-    movements: [
-      { date: "28 Maret 2026", type: "Keluar", quantity: 5, location: "Jalur Perakitan 2" },
-      { date: "15 Maret 2026", type: "Masuk", quantity: 20, location: "Zona A - Rak 12" },
-      { date: "10 Februari 2026", type: "Keluar", quantity: 12, location: "Jalur Perakitan 1" },
-      { date: "22 Januari 2026", type: "Masuk", quantity: 15, location: "Zona A - Rak 12" },
-    ],
-  },
-  "SM-200-B": {
-    sku: "SM-200-B",
-    name: "Motor Stepper Industri",
-    category: "Mekanik",
-    condition: "Baru",
-    stock: 45,
-    maxStock: 100,
-    location: "Zona B - Rak 5",
-    supplier: "MechaSystems Corp",
-    unitPrice: "Rp 4.500.000",
-    totalValue: "Rp 202.500.000",
-    lastRestocked: "20 Maret 2026",
-    specifications: {
-      "Torsi": "2.5 Nm",
-      "Step Angle": "1.8°",
-      "Arus": "4.2A",
-      "Frame Size": "NEMA 23",
-    },
-    movements: [
-      { date: "20 Maret 2026", type: "Masuk", quantity: 50, location: "Zona B - Rak 5" },
-    ],
-  }
-};
+import { useState, useEffect } from "react";
 
 export function ComponentDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [component, setComponent] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   
-  // Fallback to LDR-500-A if not found
-  const component = componentDetails[id as keyof typeof componentDetails] || componentDetails["LDR-500-A"];
+  useEffect(() => {
+    fetch('/api/inventory')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          const found = data.find((item: any) => item.id.toString() === id);
+          if (found) {
+            setComponent({
+              sku: `INV-${found.id}`,
+              name: found.name,
+              category: found.category,
+              condition: found.status || "Baru",
+              stock: found.stock,
+              maxStock: 100,
+              location: found.location,
+              supplier: found.supplier || "Vendor Utama",
+              unitPrice: found.unitPrice || "Rp 0",
+              totalValue: "Rp 0", // Can be calculated if price is parsed
+              lastRestocked: "-",
+              specifications: found.specifications || {
+                "Tipe": found.category,
+                "Lokasi": found.location
+              },
+              movements: []
+            });
+          }
+        }
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Fetch error:", err);
+        setLoading(false);
+      });
+  }, [id]);
 
-  if (!component) return null;
+  if (loading) return <div className="p-8 text-foreground">Memuat data...</div>;
+  if (!component) return <div className="p-8 text-foreground">Komponen tidak ditemukan.</div>;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -107,7 +90,7 @@ export function ComponentDetail() {
             {Object.entries(component.specifications).map(([key, value]) => (
               <div key={key} className="flex justify-between items-center py-1 border-b border-muted/30">
                 <span className="text-sm font-medium text-muted-foreground">{key}</span>
-                <span className="text-sm font-bold text-foreground">{value}</span>
+                <span className="text-sm font-bold text-foreground">{value as string}</span>
               </div>
             ))}
           </div>
@@ -165,7 +148,7 @@ export function ComponentDetail() {
               <h3 className="text-xl font-bold text-foreground mb-8 uppercase tracking-tight">Riwayat Pergerakan Stok</h3>
               <div className="relative pl-8 space-y-10">
                 <div className="absolute left-3 top-2 bottom-2 w-px bg-border"></div>
-                {component.movements.map((movement, index) => (
+                {component.movements.map((movement: any, index: number) => (
                   <div key={index} className="relative">
                     <div className={`absolute -left-[25px] top-1.5 w-3 h-3 rounded-full border-2 border-background ${movement.type === "Masuk" ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]" : "bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.3)]"}`}></div>
                     <div className="space-y-2 text-muted-foreground">

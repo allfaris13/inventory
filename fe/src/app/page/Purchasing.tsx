@@ -23,10 +23,10 @@ import {
   FileText,
   DollarSign,
   X,
-  CreditCard,
-  Truck,
   ShoppingCart,
-  Percent
+  Percent,
+  Truck,
+  CreditCard
 } from 'lucide-react';
 
 interface RABItem {

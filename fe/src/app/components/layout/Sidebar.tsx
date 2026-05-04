@@ -10,8 +10,7 @@ import {
   ShoppingBag,
   X,
   Activity,
-  Truck,
-  Users
+  Truck
 } from "lucide-react";
 
 const navItems = [

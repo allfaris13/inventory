@@ -3,57 +3,71 @@ import { Badge } from "../components/ui/badge";
 import { MapPin, Package, AlertTriangle } from "lucide-react";
 import { Progress } from "../components/ui/progress";
 
-const warehouseZones = [
-  {
-    id: "zone-a",
-    name: "Zona A",
-    totalRacks: 24,
-    occupiedRacks: 20,
-    capacity: 83,
-    status: "Optimal",
-    color: "bg-[#10b981]",
-    items: [
-      { rack: "A-12", sku: "LDR-500-A", name: "Sensor Lidar", quantity: 8 },
-      { rack: "A-8", sku: "ACT-350-C", name: "Aktuator Pneumatik", quantity: 23 },
-      { rack: "A-20", sku: "SV-200-F", name: "Motor Servo", quantity: 12 },
-    ],
-  },
-  {
-    id: "zone-b",
-    name: "Zona B",
-    totalRacks: 28,
-    occupiedRacks: 26,
-    capacity: 93,
-    status: "Mendekati Penuh",
-    color: "bg-[#f59e0b]",
-    items: [
-      { rack: "B-5", sku: "SM-200-B", name: "Motor Stepper", quantity: 45 },
-      { rack: "B-15", sku: "CB-X1-E", name: "Papan Kontrol", quantity: 67 },
-      { rack: "B-11", sku: "GRP-500-H", name: "Gripper Robotik", quantity: 29 },
-    ],
-  },
-  {
-    id: "zone-c",
-    name: "Zona C",
-    totalRacks: 20,
-    occupiedRacks: 14,
-    capacity: 70,
-    status: "Tersedia",
-    color: "bg-primary",
-    items: [
-      { rack: "C-3", sku: "BP-3000-D", name: "Paket Baterai", quantity: 18 },
-      { rack: "C-7", sku: "CAM-HD-G", name: "Modul Kamera", quantity: 34 },
-    ],
-  },
-];
+import { useState, useEffect } from "react";
 
 export function WarehouseMap() {
+  const [warehouseZones, setWarehouseZones] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/inventory')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          // Group items by zone (prefix of location)
+          const zones: Record<string, any> = {};
+          
+          data.forEach(item => {
+            const zoneName = item.location ? item.location.split(' - ')[0] : 'Lainnya';
+            if (!zones[zoneName]) {
+              zones[zoneName] = {
+                id: zoneName.toLowerCase().replace(' ', '-'),
+                name: zoneName,
+                totalRacks: 30,
+                occupiedRacks: 0,
+                capacity: 0,
+                status: "Normal",
+                color: zoneName.includes('A') ? "bg-[#10b981]" : zoneName.includes('B') ? "bg-[#f59e0b]" : "bg-primary",
+                items: []
+              };
+            }
+            
+            if (zones[zoneName].items.length < 5) {
+              zones[zoneName].items.push({
+                rack: item.location || "-",
+                sku: `INV-${item.id}`,
+                name: item.name,
+                quantity: item.stock
+              });
+            }
+            zones[zoneName].occupiedRacks++;
+          });
+
+          const zoneList = Object.values(zones).map((z: any) => ({
+            ...z,
+            capacity: Math.min(100, Math.floor((z.occupiedRacks / z.totalRacks) * 100)),
+            status: z.occupiedRacks > 25 ? "Mendekati Penuh" : "Optimal"
+          }));
+
+          setWarehouseZones(zoneList);
+        }
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Fetch error:", err);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) return <div className="p-8 text-foreground">Memuat peta gudang...</div>;
+  if (warehouseZones.length === 0) return <div className="p-8 text-foreground">Data gudang tidak tersedia.</div>;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-500">
       {/* Page Header */}
       <div>
         <h1 className="text-3xl font-semibold text-foreground">Peta Gudang</h1>
-        <p className="text-muted-foreground mt-1">Okupansi zona dan lokasi rak</p>
+        <p className="text-muted-foreground mt-1">Okupansi zona dan lokasi rak real-time</p>
       </div>
 
       {/* Zone Overview Cards */}
@@ -96,7 +110,7 @@ export function WarehouseMap() {
       <Card className="p-6 bg-card border-border shadow-lg">
         <div className="mb-6">
           <h3 className="text-xl font-semibold text-foreground">Tata Letak Gudang</h3>
-          <p className="text-sm text-muted-foreground mt-1">Blueprint zona interaktif</p>
+          <p className="text-sm text-muted-foreground mt-1">Blueprint zona dinamis</p>
         </div>
 
         {/* Blueprint Grid */}
@@ -147,8 +161,8 @@ export function WarehouseMap() {
 
               {/* Stored Items List */}
               <div className="space-y-2">
-                <p className="text-sm font-semibold text-foreground px-1">Barang Utama di {zone.name}</p>
-                {zone.items.map((item, index) => (
+                <p className="text-sm font-semibold text-foreground px-1">Sampel Barang di {zone.name}</p>
+                {zone.items.map((item: any, index: number) => (
                   <div
                     key={index}
                     className="p-3 bg-muted/20 rounded-lg border border-border hover:border-primary/50 transition-colors cursor-pointer"
@@ -173,7 +187,6 @@ export function WarehouseMap() {
           ))}
         </div>
       </Card>
-
       {/* Capacity Alerts */}
       <Card className="p-6 bg-card border-border shadow-lg">
         <div className="flex items-start gap-4">
@@ -183,7 +196,7 @@ export function WarehouseMap() {
           <div>
             <h4 className="font-semibold text-foreground mb-1">Peringatan Kapasitas</h4>
             <p className="text-sm text-muted-foreground">
-              Zona B berada pada kapasitas 93%. Pertimbangkan untuk mendistribusikan ulang barang ke Zona C atau meminta ruang penyimpanan tambahan.
+              Okupansi zona dipantau secara real-time. Jika zona melebihi 80%, segera lakukan audit ruang atau restock plan.
             </p>
           </div>
         </div>

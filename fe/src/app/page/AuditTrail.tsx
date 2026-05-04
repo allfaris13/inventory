@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react';
 import { 
   History, 
-  User, 
   MapPin, 
   Clock, 
   ArrowUpRight, 
   ArrowDownLeft, 
   RefreshCcw,
   Search,
-  Filter,
   ShieldCheck
 } from "lucide-react";
 import { Card } from '../components/ui/card';
