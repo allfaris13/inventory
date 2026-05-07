@@ -26,9 +26,12 @@ export function Dashboard() {
 
   useEffect(() => {
     fetch('/api/dashboard-stats')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error("Network response was not ok");
+        return res.json();
+      })
       .then(data => {
-        setStats(data);
+        if (!data.error) setStats(data);
       })
       .catch(err => console.error("Error fetching stats:", err));
   }, []);

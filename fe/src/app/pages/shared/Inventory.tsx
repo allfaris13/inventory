@@ -97,6 +97,7 @@ export function Inventory() {
       status: newItem.condition,
       stock: newItem.stock,
       location: newItem.location,
+      type: newItem.type,
     };
 
     const method = editingId ? 'PUT' : 'POST';
