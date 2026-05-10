@@ -9,7 +9,12 @@ import {
   Download as DownloadIcon,
   ClipboardList,
   ExternalLink,
-  Filter
+  Filter,
+  Eye,
+  Phone,
+  X,
+  MessageSquare,
+  CheckCircle2
 } from 'lucide-react';
 import {
   Table,
@@ -22,16 +27,23 @@ import {
 
 interface BorrowRequest {
   id: string;
+  real_id?: number;
   institution: string;
   pic: string;
-  items: string[];
+  phone?: string;
   purpose: string;
+  jenjang?: string;
+  items: string[];
+  quantity?: string;
+  pickup_date_time?: string;
   date: string;
   status: 'Pending' | 'Approved' | 'Borrowed' | 'Returned';
+  borrower_type?: string;
 }
 
 export function Peminjaman() {
   const [requests, setRequests] = useState<BorrowRequest[]>([]);
+  const [selectedRequest, setSelectedRequest] = useState<BorrowRequest | null>(null);
 
   const [activeTab, setActiveTab] = useState<'Requests' | 'Active' | 'QR'>('Requests');
 
@@ -93,7 +105,7 @@ export function Peminjaman() {
   };
 
   const pendingRequests = requests.filter(r => r.status === 'Pending');
-  const activeLoans = requests.filter(r => r.status === 'Borrowed');
+  const activeLoans = requests.filter(r => r.status === 'Borrowed' || r.status === 'Returned');
 
   return (
     <div className="space-y-6">
@@ -114,7 +126,7 @@ export function Peminjaman() {
             onClick={() => setActiveTab('Active')}
             className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'Active' ? 'bg-card text-foreground shadow-lg border border-border' : 'text-muted-foreground'}`}
           >
-            Aktif ({activeLoans.length})
+            Aktif & Selesai ({activeLoans.length})
           </button>
           <button 
             onClick={() => setActiveTab('QR')}
@@ -143,7 +155,7 @@ export function Peminjaman() {
                 <TableRow className="border-border hover:bg-transparent">
                   <TableHead className="text-[10px] font-black text-muted-foreground uppercase tracking-widest py-5 px-8">ID & Tanggal</TableHead>
                   <TableHead className="text-[10px] font-black text-muted-foreground uppercase tracking-widest py-5">Institusi / Sekolah</TableHead>
-                  <TableHead className="text-[10px] font-black text-muted-foreground uppercase tracking-widest py-5">Penanggung Jawab</TableHead>
+                  <TableHead className="text-[10px] font-black text-muted-foreground uppercase tracking-widest py-5">Peminjam (Pengajar / Teknisi)</TableHead>
                   <TableHead className="text-[10px] font-black text-muted-foreground uppercase tracking-widest py-5">Barang & Kebutuhan</TableHead>
                   <TableHead className="text-[10px] font-black text-muted-foreground uppercase tracking-widest py-5">Keperluan / Deskripsi</TableHead>
                   <TableHead className="text-[10px] font-black text-muted-foreground uppercase tracking-widest py-5 text-right px-8">Aksi</TableHead>
@@ -174,7 +186,15 @@ export function Peminjaman() {
                            <div className="w-8 h-8 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-500">
                              <User size={14} />
                            </div>
-                           <p className="text-sm font-bold text-foreground">{req.pic}</p>
+                           <div>
+                              <div className="flex items-center gap-1.5">
+                                <p className="text-sm font-black text-foreground">{req.pic}</p>
+                                <span className={`text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md ${req.borrower_type === 'teknisi' ? 'bg-amber-500/10 text-amber-500' : 'bg-indigo-500/10 text-indigo-500'}`}>
+                                  {req.borrower_type === 'teknisi' ? 'Teknisi' : 'Pengajar'}
+                                </span>
+                              </div>
+                              <p className="text-[10px] font-mono text-emerald-500 font-bold">{req.phone || '-'}</p>
+                            </div>
                         </div>
                       </TableCell>
                       <TableCell className="py-6">
@@ -190,21 +210,28 @@ export function Peminjaman() {
                          <p className="text-[11px] text-muted-foreground max-w-[200px] leading-relaxed italic">"{req.purpose}"</p>
                       </TableCell>
                       <TableCell className="py-6 px-8 text-right">
-                         <div className="flex justify-end gap-2">
-                             <Button 
-                               onClick={() => handleApprove((req as any).real_id)}
-                               className="h-9 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase text-[9px] tracking-widest rounded-xl shadow-lg shadow-emerald-600/20"
-                             >
-                                Setujui
-                             </Button>
-                             <Button 
-                               onClick={() => handleReject((req as any).real_id)}
-                               variant="outline"
-                               className="h-9 px-4 border-border text-muted-foreground hover:text-red-400 hover:border-red-400/30 font-black uppercase text-[9px] tracking-widest rounded-xl"
-                             >
-                                Tolak
-                             </Button>
-                         </div>
+                          <div className="flex justify-end gap-2">
+                              <Button 
+                                onClick={() => setSelectedRequest(req)}
+                                className="h-9 px-3 bg-indigo-600/10 hover:bg-indigo-600 text-indigo-500 hover:text-white rounded-xl transition-all"
+                                title="Lihat Detail Peminjam"
+                              >
+                                 <Eye size={15} />
+                              </Button>
+                              <Button 
+                                onClick={() => handleApprove((req as any).real_id)}
+                                className="h-9 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase text-[9px] tracking-widest rounded-xl shadow-lg shadow-emerald-600/20"
+                              >
+                                 Setujui
+                              </Button>
+                              <Button 
+                                onClick={() => handleReject((req as any).real_id)}
+                                variant="outline"
+                                className="h-9 px-4 border-border text-muted-foreground hover:text-red-400 hover:border-red-400/30 font-black uppercase text-[9px] tracking-widest rounded-xl"
+                              >
+                                 Tolak
+                              </Button>
+                          </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -231,6 +258,10 @@ export function Peminjaman() {
                           </p>
                           <p className="text-xs text-muted-foreground flex items-center gap-1 font-bold">
                              <User size={12} /> {req.pic}
+                              <span className={`ml-1.5 text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md ${req.borrower_type === 'teknisi' ? 'bg-amber-500/10 text-amber-500' : 'bg-indigo-500/10 text-indigo-500'}`}>
+                                {req.borrower_type === 'teknisi' ? 'Teknisi' : 'Pengajar'}
+                              </span>
+                              {req.phone && <span className="ml-2 font-mono text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded text-[10px] font-bold">{req.phone}</span>}
                           </p>
                        </div>
                        <div className="mt-3 flex gap-2">
@@ -238,13 +269,27 @@ export function Peminjaman() {
                        </div>
                     </div>
                  </div>
-                 <div className="flex gap-3 w-full md:w-auto">
-                     <Button 
-                       onClick={() => handleReturn((req as any).real_id)}
-                       className="flex-1 md:px-8 h-12 bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase text-[10px] tracking-widest rounded-xl shadow-xl shadow-indigo-600/20"
-                     >
-                        Konfirmasi Kembali
-                     </Button>
+                  <div className="flex gap-3 w-full md:w-auto items-center">
+                      <Button 
+                        onClick={() => setSelectedRequest(req)}
+                        variant="outline"
+                        className="h-12 w-12 p-0 border-border hover:bg-indigo-600/10 hover:text-indigo-500 text-muted-foreground rounded-xl transition-all"
+                        title="Lihat Detail Peminjam"
+                      >
+                         <Eye size={18} />
+                      </Button>
+                      {req.status === 'Returned' ? (
+                        <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-4 py-2.5 rounded-xl border border-emerald-500/20 flex items-center gap-1 justify-center whitespace-nowrap">
+                          <CheckCircle2 size={12} /> Sukses Dikembalikan
+                        </span>
+                      ) : (
+                        <Button 
+                          onClick={() => handleReturn((req as any).real_id)}
+                          className="flex-1 md:px-8 h-12 bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase text-[10px] tracking-widest rounded-xl shadow-xl shadow-indigo-600/20"
+                        >
+                           Konfirmasi Kembali
+                        </Button>
+                      )}
                  </div>
               </Card>
            ))}
@@ -301,6 +346,96 @@ export function Peminjaman() {
                 Data pengajuan mereka akan muncul otomatis di tab "Pengajuan Baru".
               </p>
            </div>
+        </div>
+      )}
+      {/* Detail Peminjam Modal */}
+      {selectedRequest && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-300">
+          <Card className="relative w-full max-w-lg bg-card border-border shadow-2xl rounded-[2.5rem] overflow-hidden animate-in zoom-in-95 duration-300">
+            {/* Header */}
+            <div className="p-8 border-b border-border bg-muted/10 flex justify-between items-center">
+              <div>
+                <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest font-mono bg-indigo-500/10 px-2.5 py-1 rounded-full">
+                  {selectedRequest.id}
+                </span>
+                <h3 className="text-xl font-black text-foreground uppercase tracking-tighter pt-2">
+                  Detail Informasi Peminjam
+                </h3>
+              </div>
+              <button
+                onClick={() => setSelectedRequest(null)}
+                className="p-2.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-all"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-8 space-y-6">
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <p className="text-[10px] text-muted-foreground font-black uppercase tracking-wider">
+                    Nama {selectedRequest.borrower_type === 'teknisi' ? 'Teknisi' : 'Pengajar'}
+                  </p>
+                  <p className="text-sm font-black text-foreground pt-0.5">{selectedRequest.pic}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground font-black uppercase tracking-wider">Lembaga / Institusi</p>
+                  <p className="text-sm font-black text-foreground pt-0.5">{selectedRequest.institution}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6 pt-4 border-t border-border/40">
+                <div>
+                  <p className="text-[10px] text-muted-foreground font-black uppercase tracking-wider">Nomor WhatsApp</p>
+                  <p className="text-sm font-black text-foreground pt-0.5">{selectedRequest.phone || 'Tidak tersedia'}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground font-black uppercase tracking-wider">Jenjang Materi</p>
+                  <p className="text-sm font-black text-foreground pt-0.5 uppercase tracking-tight">{selectedRequest.jenjang || 'Tidak tersedia'}</p>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-border/40">
+                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-wider">Bahan & Komponen yang Dipinjam</p>
+                <div className="flex flex-wrap gap-2 pt-1.5">
+                  {selectedRequest.items.map((i) => (
+                    <Badge key={i} className="bg-muted text-foreground text-xs font-black px-3 py-1 border-none">
+                      {i} (Qty: {selectedRequest.quantity || '1 unit'})
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-border/40">
+                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-wider">Tujuan Keperluan Peminjaman</p>
+                <p className="text-xs font-medium text-muted-foreground pt-1 italic leading-relaxed">
+                  "{selectedRequest.purpose}"
+                </p>
+              </div>
+
+              {selectedRequest.pickup_date_time && (
+                <div className="pt-4 border-t border-border/40">
+                  <p className="text-[10px] text-muted-foreground font-black uppercase tracking-wider">Tanggal & Waktu Pengambilan</p>
+                  <p className="text-sm font-black text-foreground pt-0.5">{selectedRequest.pickup_date_time}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer / Quick Actions */}
+            {selectedRequest.phone && (
+              <div className="p-8 border-t border-border bg-muted/5">
+                <a
+                  href={`https://wa.me/${selectedRequest.phone.replace(/[^0-9]/g, '').startsWith('0') ? '62' + selectedRequest.phone.replace(/[^0-9]/g, '').substring(1) : selectedRequest.phone.replace(/[^0-9]/g, '')}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full h-14 bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase text-xs tracking-widest rounded-2xl shadow-xl shadow-emerald-600/10 flex items-center justify-center gap-2 transition-all active:scale-95"
+                >
+                  <MessageSquare size={16} /> Hubungi via WhatsApp
+                </a>
+              </div>
+            )}
+          </Card>
         </div>
       )}
     </div>

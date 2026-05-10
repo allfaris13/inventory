@@ -44,7 +44,7 @@ export function Header({ onMenuClick }: HeaderProps) {
 
         <div className="hidden sm:block">
           <p className="text-[10px] md:text-xs text-muted-foreground">Selamat datang kembali,</p>
-          <h2 className="text-xs md:text-sm font-semibold text-foreground">Operasional Gudang</h2>
+          <h2 className="text-xs md:text-sm font-bold text-foreground">{fullName}</h2>
         </div>
       </div>
       

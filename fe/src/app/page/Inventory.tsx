@@ -439,8 +439,8 @@ export function Inventory() {
 
       {/* Add Item Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <Card className="w-full max-w-md bg-card border-border shadow-2xl animate-in zoom-in-95 duration-200 rounded-[2rem]">
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <Card className="w-full max-w-md bg-card border-border shadow-2xl animate-in zoom-in-95 duration-200 rounded-[2rem] my-8">
             <div className="flex justify-between items-center p-8 border-b border-border bg-muted/20">
               <h2 className="text-xl font-black text-foreground uppercase tracking-tight">
                 {editingId ? 'Edit Barang' : (newItem.type === 'mentah' ? 'Tambah Barang Mentah' : 'Catat Barang Matang')}

@@ -39,16 +39,25 @@ export function RobotHPP() {
   const [robots, setRobots] = useState<Robot[]>([]);
   const [inventorySource, setInventorySource] = useState<any[]>([]);
   
+  const fetchRobots = () => {
+    fetch('/api/production-robots')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setRobots(data);
+      })
+      .catch(err => console.error("Fetch Robots failed:", err));
+  };
+
   useEffect(() => {
+    fetchRobots(); // Fetch dynamic robots from DB
     fetch('/api/inventory')
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
-           // map to format matching component
            setInventorySource(data.map(d => ({
              name: d.name,
              sku: `INV-${d.id}`,
-             price: parseInt(d.unitPrice) || 0,
+             price: parseInt(d.unitPrice.replace(/[^0-9]/g, '')) || 0,
              category: d.category
            })));
         }
@@ -135,20 +144,32 @@ export function RobotHPP() {
     setNewBOM(updated);
   };
 
-  const handleSaveRobot = () => {
+  const handleSaveRobot = async () => {
     if (!newRobot.name || newBOM.length === 0) {
       alert("Lengkapi Nama Robot dan minimal 1 Komponen!");
       return;
     }
-    const robotToSave: Robot = {
+    
+    const payload = {
       ...newRobot,
-      id: `RBT-${String(robots.length + 1).padStart(3, '0')}`,
       components: newBOM
     };
-    setRobots([robotToSave, ...robots]);
-    setIsModalOpen(false);
-    setNewBOM([]);
-    setNewRobot({ name: '', model: 'New Prototype v1.0', image: 'https://images.unsplash.com/photo-1558486012-817176f84c6d?auto=format&fit=crop&q=80&w=400' });
+
+    try {
+      const res = await fetch('/api/production-robots', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        fetchRobots(); // Refresh latest list
+        setIsModalOpen(false);
+        setNewBOM([]);
+        setNewRobot({ name: '', model: 'New Prototype v1.0', image: 'https://images.unsplash.com/photo-1558486012-817176f84c6d?auto=format&fit=crop&q=80&w=400' });
+      }
+    } catch (err) {
+      console.error("Save robot failed:", err);
+    }
   };
 
   return (
@@ -315,8 +336,8 @@ export function RobotHPP() {
 
       {/* MODAL: TAMBAH ROBOT BARU */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-300">
-           <Card className="w-full max-w-4xl bg-card border-slate-800 shadow-2xl rounded-[3rem] overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-300">
+            <div className="cyber-card glass-panel glow-indigo w-full max-w-4xl bg-card border border-slate-800 shadow-2xl rounded-[3rem] overflow-hidden flex flex-col max-h-[90vh] my-8">
               <div className="p-10 border-b border-border bg-muted/20 flex justify-between items-center">
                  <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500 border border-indigo-500/20">
@@ -479,7 +500,7 @@ export function RobotHPP() {
                     Terbitkan Data & Simpan HPP
                  </button>
               </div>
-           </Card>
+           </div>
         </div>
       )}
     </div>

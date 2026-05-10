@@ -47,6 +47,7 @@ export function Inventory() {
   });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [specList, setSpecList] = useState<{key: string, value: string}[]>([]);
+  const [componentsUsed, setComponentsUsed] = useState<{ id: number, qty: number }[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua Kategori');
   const navigate = useNavigate();
 
@@ -80,8 +81,9 @@ export function Inventory() {
     }
   };
 
-  const lowStockCount = items.filter((i: InventoryItem) => (i.stock / i.maxStock) < 0.25).length;
-  const inRepairCount = items.filter((i: InventoryItem) => i.condition === 'Dalam Perbaikan').length;
+  const tabItems = items.filter(item => item.type === activeTab);
+  const lowStockCount = tabItems.filter((i: InventoryItem) => (i.stock / i.maxStock) < 0.25).length;
+  const inRepairCount = tabItems.filter((i: InventoryItem) => i.condition === 'Dalam Perbaikan').length;
 
   const handleSaveItem = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,6 +100,10 @@ export function Inventory() {
       stock: newItem.stock,
       location: newItem.location,
       type: newItem.type,
+      unitPrice: newItem.unitPrice,
+      supplier: newItem.supplier,
+      specifications: specs,
+      components: newItem.type === 'matang' ? componentsUsed : []
     };
 
     const method = editingId ? 'PUT' : 'POST';
@@ -136,7 +142,10 @@ export function Inventory() {
             location: item.location,
             image: '',
             type: item.type || 'mentah',
-            branch_name: item.branch_name
+            branch_name: item.branch_name,
+            unitPrice: item.unitPrice,
+            supplier: item.supplier,
+            specifications: typeof item.specifications === 'string' ? JSON.parse(item.specifications) : (item.specifications || {})
           }));
           setItems(adapted);
         }
@@ -146,6 +155,7 @@ export function Inventory() {
 
   const openAddModal = (type: 'mentah' | 'matang') => {
     setEditingId(null);
+    setComponentsUsed([]);
     setNewItem({
       id: '',
       name: '',
@@ -204,6 +214,24 @@ export function Inventory() {
   const removeSpecField = (index: number) => {
     const newList = specList.filter((_, i) => i !== index);
     setSpecList(newList);
+  };
+
+  const addComponentField = () => {
+    const firstRaw = items.find(i => i.type === 'mentah');
+    if (firstRaw) {
+      setComponentsUsed([...componentsUsed, { id: parseInt(firstRaw.id), qty: 1 }]);
+    }
+  };
+
+  const updateComponentField = (index: number, field: 'id' | 'qty', value: number) => {
+    const newList = [...componentsUsed];
+    newList[index][field] = value;
+    setComponentsUsed(newList);
+  };
+
+  const removeComponentField = (index: number) => {
+    const newList = componentsUsed.filter((_, i) => i !== index);
+    setComponentsUsed(newList);
   };
 
   const handleDeleteItem = async (id: string) => {
@@ -406,7 +434,7 @@ export function Inventory() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="p-6 border-border bg-card space-y-4 shadow-sm transition-colors">
           <p className="text-sm font-black text-muted-foreground uppercase tracking-widest">Total Barang</p>
-          <p className="text-4xl font-black text-foreground tracking-tight">{items.length}</p>
+          <p className="text-4xl font-black text-foreground tracking-tight">{tabItems.length}</p>
         </Card>
         <Card className="p-6 border-border bg-card space-y-4 shadow-sm transition-colors">
           <p className="text-sm font-black text-muted-foreground uppercase tracking-widest">Barang Stok Rendah</p>
@@ -581,6 +609,56 @@ export function Inventory() {
                     </div>
                   )}
                 </div>
+
+                {newItem.type === 'matang' && (
+                  <div className="space-y-3 mb-6 pt-4 border-t border-border">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] whitespace-nowrap">Komponen Mentah yang Digunakan</span>
+                      <button 
+                        type="button"
+                        onClick={addComponentField}
+                        className="text-[9px] font-bold text-indigo-400 flex items-center gap-1 hover:text-indigo-300 transition-colors"
+                      >
+                        <Plus size={10} />
+                        Tambah Komponen
+                      </button>
+                    </div>
+                    
+                    {componentsUsed.length > 0 && (
+                      <div className="space-y-3">
+                        {componentsUsed.map((comp, index) => (
+                          <div key={index} className="flex gap-2 items-center animate-in slide-in-from-right-2 duration-200">
+                            <select 
+                              className="flex h-10 flex-1 rounded-lg border border-border bg-card px-3 text-xs text-foreground outline-none font-bold"
+                              value={comp.id}
+                              onChange={e => updateComponentField(index, 'id', parseInt(e.target.value))}
+                            >
+                              {items.filter(i => i.type === 'mentah').map(i => (
+                                <option key={i.id} value={i.id} className="bg-card">
+                                  {i.name} (Stok: {i.stock})
+                                </option>
+                              ))}
+                            </select>
+                            <Input 
+                              type="number"
+                              placeholder="Qty" 
+                              className="bg-card border-border h-10 text-xs font-bold w-20 text-center rounded-lg"
+                              value={comp.qty}
+                              onChange={e => updateComponentField(index, 'qty', parseInt(e.target.value) || 1)}
+                            />
+                            <button 
+                              type="button"
+                              onClick={() => removeComponentField(index)}
+                              className="text-muted-foreground hover:text-rose-500 transition-colors p-2"
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div className="pt-6 border-t border-border">
                   <div className="flex items-center gap-6">

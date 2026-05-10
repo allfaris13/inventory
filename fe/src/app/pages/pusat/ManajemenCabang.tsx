@@ -175,8 +175,12 @@ export function ManajemenCabang() {
                   </td>
                   <td className="px-8 py-6 text-sm font-medium text-muted-foreground">{user.email}</td>
                   <td className="px-8 py-6">
-                    <Badge className={user.role === 'super_admin' ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20'}>
-                      {user.role === 'super_admin' ? 'SUPER ADMIN' : 'ADMIN CABANG'}
+                    <Badge className={
+                      user.role === 'super_admin' ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' : 
+                      user.role === 'prepare' ? 'bg-purple-500/10 text-purple-500 border-purple-500/20' :
+                      'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                    }>
+                      {user.role === 'super_admin' ? 'SUPER ADMIN' : user.role === 'prepare' ? 'PREPARE' : 'ADMIN CABANG'}
                     </Badge>
                   </td>
                   <td className="px-8 py-6">
@@ -269,6 +273,7 @@ export function ManajemenCabang() {
                   >
                     <option value="super_admin">Super Admin</option>
                     <option value="admin_cabang">Admin Cabang</option>
+                    <option value="prepare">Prepare</option>
                   </select>
                 </div>
                 <div className="space-y-2">

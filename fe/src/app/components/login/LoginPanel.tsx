@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './LoginPanel.css';
 import roboBg from '../../../assets/robo_login_bg.png';
+import { RoboLogo } from '../ui/RoboLogo';
 
 export const LoginPanel: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -55,7 +56,9 @@ export const LoginPanel: React.FC = () => {
           <div className="login-hero-overlay" />
           
           {/* Asterisk Logo at the top left of the Hero section */}
-          <div className="login-logo-asterisk">*</div>
+          <div className="login-logo-asterisk w-10 h-10 text-[#4DD0E1]">
+             <RoboLogo />
+          </div>
 
           <div className="login-hero-content">
             <h2>
@@ -70,7 +73,9 @@ export const LoginPanel: React.FC = () => {
         
         <form className="login-form" onSubmit={handleLogin}>
           <div className="login-header">
-            <div className="login-form-asterisk">*</div>
+            <div className="login-form-asterisk w-12 h-12 mb-4 mx-auto bg-[#4DD0E1]/10 rounded-2xl p-2 text-[#4DD0E1]">
+              <RoboLogo />
+            </div>
             <h1>Masuk ke Akun</h1>
             <p>Silakan masukkan detail akses untuk melanjutkan.</p>
           </div>

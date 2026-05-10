@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
@@ -26,7 +26,10 @@ import {
   ShoppingCart,
   Percent,
   Truck,
-  CreditCard
+  CreditCard,
+  Trash2,
+  Edit,
+  RotateCcw
 } from 'lucide-react';
 
 interface RABItem {
@@ -55,6 +58,13 @@ interface RealisasiItem extends RABItem {
   sumberDana: string;
 }
 
+export interface FormItemRow {
+  namaBarang: string;
+  jumlah: number;
+  satuan: string;
+  estimasiHarga: number;
+}
+
 export function Purchasing() {
   const [activeTab, setActiveTab] = useState<'RAB' | 'Realisasi' | 'Laporan'>('RAB');
   const [rabItems, setRabItems] = useState<RABItem[]>([]);
@@ -64,15 +74,21 @@ export function Purchasing() {
   const [selectedRAB, setSelectedRAB] = useState<RABItem | null>(null);
 
   // Form States for RAB
-  const [newRAB, setNewRAB] = useState<Omit<RABItem, 'id' | 'status' | 'totalEstimasi'>>({
+  const [newRAB, setNewRAB] = useState<{
+    tanggalPengajuan: string;
+    kebutuhan: string;
+    kategori: 'Fisik' | 'Non-Fisik';
+  }>({
     tanggalPengajuan: new Date().toLocaleDateString('id-ID'),
-    namaBarang: '',
-    jumlah: 1,
-    satuan: 'pcs',
-    estimasiHarga: 0,
     kebutuhan: 'teknisi',
     kategori: 'Fisik'
   });
+
+  const [itemsList, setItemsList] = useState<FormItemRow[]>([
+    { namaBarang: '', jumlah: 1, satuan: 'pcs', estimasiHarga: 0 }
+  ]);
+
+  const [realItemsList, setRealItemsList] = useState<FormItemRow[]>([]);
 
   // Form States for Realisasi
   const [newReal, setNewReal] = useState<Partial<RealisasiItem>>({
@@ -84,6 +100,44 @@ export function Purchasing() {
     metodePembelian: 'offline',
     sumberDana: 'Dana RAB'
   });
+  const [pemasukanDana, setPemasukanDana] = useState<number>(() => {
+    const saved = localStorage.getItem('pemasukan_dana_rab');
+    return saved ? parseInt(saved) : 16855990;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('pemasukan_dana_rab', pemasukanDana.toString());
+  }, [pemasukanDana]);
+
+  useEffect(() => {
+    fetchPurchasing();
+  }, []);
+
+  const fetchPurchasing = () => {
+    fetch('/api/purchasing')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setRabItems(data);
+          setRealisasiItems(data.filter(item => item.status === 'Realized'));
+        }
+      })
+      .catch(err => console.error("Fetch purchasing error:", err));
+  };
+
+  const parseItems = (item: RABItem): FormItemRow[] => {
+    try {
+      if (item.namaBarang && item.namaBarang.trim().startsWith('[')) {
+        return JSON.parse(item.namaBarang);
+      }
+    } catch (e) {}
+    return [{
+      namaBarang: item.namaBarang,
+      jumlah: item.jumlah,
+      satuan: item.satuan,
+      estimasiHarga: item.estimasiHarga
+    }];
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -94,51 +148,146 @@ export function Purchasing() {
     }).format(amount);
   };
 
-  const handleSaveRAB = (e: React.FormEvent) => {
+  const getRealisasiSubtotal = () => {
+    return realItemsList.reduce((sum, item) => sum + (item.jumlah * item.estimasiHarga), 0);
+  };
+
+  const getRealisasiTotal = () => {
+    const sub = getRealisasiSubtotal();
+    return sub + (newReal.biayaLayanan || 0) + (newReal.biayaOngkir || 0) - (newReal.diskon || 0);
+  };
+
+  const handleSaveRAB = async (e: React.FormEvent) => {
     e.preventDefault();
-    const item: RABItem = {
-      ...newRAB,
-      id: `RAB-${String(rabItems.length + 1).padStart(3, '0')}`,
-      totalEstimasi: newRAB.jumlah * newRAB.estimasiHarga,
-      status: 'Pending'
-    };
-    setRabItems([item, ...rabItems]);
-    setIsRABModalOpen(false);
+    const totalEstimasi = itemsList.reduce((sum, item) => sum + (item.jumlah * item.estimasiHarga), 0);
+    try {
+      const res = await fetch('/api/purchasing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tanggalPengajuan: newRAB.tanggalPengajuan,
+          kebutuhan: newRAB.kebutuhan,
+          kategori: newRAB.kategori,
+          namaBarang: JSON.stringify(itemsList),
+          jumlah: 1,
+          satuan: 'items',
+          estimasiHarga: totalEstimasi
+        })
+      });
+      if (res.ok) {
+        fetchPurchasing();
+        setIsRABModalOpen(false);
+        setItemsList([{ namaBarang: '', jumlah: 1, satuan: 'pcs', estimasiHarga: 0 }]);
+      }
+    } catch (err) {
+      console.error("Save RAB error:", err);
+    }
   };
 
   const handleOpenRealisasi = (item: RABItem) => {
     setSelectedRAB(item);
-    setNewReal({
-      ...newReal,
-      namaBarang: item.namaBarang,
-      jumlah: item.jumlah,
-      satuan: item.satuan,
-      hargaSatuan: item.estimasiHarga,
-      tujuanPembelian: item.kebutuhan,
-      subTotal: item.jumlah * item.estimasiHarga
-    });
+    const parsed = parseItems(item);
+    setRealItemsList(parsed);
+    
+    if (item.status === 'Realized') {
+      const real = item as RealisasiItem;
+      setNewReal({
+        tanggalPembelian: real.tanggalPembelian || new Date().toLocaleDateString('id-ID'),
+        hargaSatuan: real.hargaSatuan || 0,
+        biayaLayanan: real.biayaLayanan || 0,
+        biayaOngkir: real.biayaOngkir || 0,
+        diskon: real.diskon || 0,
+        tujuanPembelian: real.tujuanPembelian || item.kebutuhan,
+        metodePembelian: real.metodePembelian || 'offline',
+        sumberDana: real.sumberDana || 'Dana RAB'
+      });
+    } else {
+      setNewReal({
+        tanggalPembelian: new Date().toLocaleDateString('id-ID'),
+        hargaSatuan: 0,
+        biayaLayanan: 0,
+        biayaOngkir: 0,
+        diskon: 0,
+        metodePembelian: 'offline',
+        sumberDana: 'Dana RAB',
+        tujuanPembelian: item.kebutuhan
+      });
+    }
     setIsRealisasiModalOpen(true);
   };
 
-  const handleSaveRealisasi = (e: React.FormEvent) => {
+  const handleSaveRealisasi = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedRAB) return;
 
-    const subTotal = (newReal.jumlah || 1) * (newReal.hargaSatuan || 0);
-    const totalAkhir = subTotal + (newReal.biayaLayanan || 0) + (newReal.biayaOngkir || 0) - (newReal.diskon || 0);
+    const subTotal = getRealisasiSubtotal();
+    try {
+      const res = await fetch('/api/purchasing', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          real_id: (selectedRAB as any).real_id,
+          tanggalPembelian: newReal.tanggalPembelian,
+          namaBarang: JSON.stringify(realItemsList),
+          jumlah: 1,
+          satuan: 'items',
+          hargaSatuan: subTotal,
+          biayaLayanan: newReal.biayaLayanan,
+          biayaOngkir: newReal.biayaOngkir,
+          diskon: newReal.diskon,
+          tujuanPembelian: newReal.tujuanPembelian,
+          metodePembelian: newReal.metodePembelian,
+          sumberDana: newReal.sumberDana
+        })
+      });
+      if (res.ok) {
+        fetchPurchasing();
+        setIsRealisasiModalOpen(false);
+        setActiveTab('Realisasi');
+      }
+    } catch (err) {
+      console.error("Save Realisasi error:", err);
+    }
+  };
 
-    const item: RealisasiItem = {
-      ...selectedRAB,
-      ...newReal,
-      subTotal,
-      totalAkhir,
-      status: 'Realized'
-    } as RealisasiItem;
+  const handleDeletePurchasing = async (item: RABItem) => {
+    if (!confirm("Apakah Anda yakin ingin menghapus pengajuan RAB ini? Tindakan ini tidak dapat dibatalkan.")) return;
+    const anyItem = item as any;
+    let realId = anyItem.real_id;
+    if (!realId && typeof item.id === 'string' && item.id.includes('-')) {
+      const parts = item.id.split('-');
+      realId = parseInt(parts[parts.length - 1]) || item.id;
+    }
+    try {
+      const res = await fetch(`/api/purchasing?id=${realId}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        fetchPurchasing();
+      }
+    } catch (err) {
+      console.error("Delete purchasing error:", err);
+    }
+  };
 
-    setRealisasiItems([item, ...realisasiItems]);
-    setRabItems(rabItems.map(r => r.id === selectedRAB.id ? { ...r, status: 'Realized' } : r));
-    setIsRealisasiModalOpen(false);
-    setActiveTab('Realisasi');
+  const handleResetPurchasing = async (item: RABItem) => {
+    if (!confirm("Apakah Anda yakin ingin membatalkan realisasi pembelanjaan ini dan mengembalikan status ke Pending?")) return;
+    const anyItem = item as any;
+    let realId = anyItem.real_id;
+    if (!realId && typeof item.id === 'string' && item.id.includes('-')) {
+      const parts = item.id.split('-');
+      realId = parseInt(parts[parts.length - 1]) || item.id;
+    }
+    try {
+      const res = await fetch(`/api/purchasing?id=${realId}&action=reset`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        fetchPurchasing();
+      }
+    } catch (err) {
+      console.error("Reset purchasing error:", err);
+    }
   };
 
   return (
@@ -211,40 +360,88 @@ export function Purchasing() {
                    </TableRow>
                 </TableHeader>
                 <TableBody>
-                   {rabItems.map((item) => (
-                      <TableRow key={item.id} className="border-border hover:bg-muted/10 transition-colors group">
-                         <td className="px-8 py-6 text-xs font-mono font-medium text-muted-foreground">{item.tanggalPengajuan}</td>
-                         <td className="px-8 py-6">
-                            <p className="text-sm font-black text-foreground uppercase tracking-tight">{item.namaBarang}</p>
-                            <p className="text-[10px] font-mono text-muted-foreground">{item.id}</p>
-                         </td>
-                         <td className="px-8 py-6 text-center text-sm font-black">{item.jumlah} {item.satuan}</td>
-                         <td className="px-8 py-6 text-right text-xs font-bold text-muted-foreground">{formatCurrency(item.estimasiHarga)}</td>
-                         <td className="px-8 py-6 text-right text-sm font-black text-indigo-500">{formatCurrency(item.totalEstimasi)}</td>
-                         <td className="px-8 py-6">
-                            <Badge className="bg-muted border-border text-foreground text-[9px] font-black uppercase tracking-widest">
-                               {item.kebutuhan}
-                            </Badge>
-                         </td>
-                         <td className="px-8 py-6 text-center">
-                            {item.status === 'Realized' ? (
-                               <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[9px] font-black">REALIZED</Badge>
-                            ) : (
-                               <Badge className="bg-orange-500/10 text-orange-500 border-orange-500/20 text-[9px] font-black">PENDING</Badge>
-                            )}
-                         </td>
-                         <td className="px-8 py-6 text-right">
-                            {item.status === 'Pending' && (
-                               <button 
-                                 onClick={() => handleOpenRealisasi(item)}
-                                 className="p-3 bg-indigo-600/10 hover:bg-indigo-600 text-indigo-500 hover:text-white rounded-xl transition-all shadow-sm"
-                               >
-                                  <ChevronRight size={18} />
-                               </button>
-                            )}
-                         </td>
-                      </TableRow>
-                   ))}
+                   {rabItems.map((item) => {
+                      const parsed = parseItems(item);
+                      return (
+                         <TableRow key={item.id} className="border-border hover:bg-muted/10 transition-colors group">
+                            <td className="px-8 py-6 text-xs font-mono font-medium text-muted-foreground">{item.tanggalPengajuan}</td>
+                            <td className="px-8 py-6">
+                               <div className="space-y-1">
+                                  {parsed.map((sub, idx) => (
+                                     <div key={idx} className="flex flex-col mb-2 last:mb-0 border-b border-border/10 pb-1 last:border-none">
+                                        <span className="text-sm font-black text-foreground uppercase tracking-tight">{sub.namaBarang}</span>
+                                        <span className="text-[10px] text-muted-foreground font-mono">Qty: {sub.jumlah} {sub.satuan} @ {formatCurrency(sub.estimasiHarga)}</span>
+                                     </div>
+                                  ))}
+                               </div>
+                               <p className="text-[10px] font-mono text-indigo-500 mt-2 font-bold uppercase tracking-widest">Ref: {item.id}</p>
+                            </td>
+                            <td className="px-8 py-6 text-center text-sm font-black">{parsed.length} Item</td>
+                            <td className="px-8 py-6 text-right text-xs font-bold text-muted-foreground">---</td>
+                            <td className="px-8 py-6 text-right text-sm font-black text-indigo-500">{formatCurrency(item.totalEstimasi)}</td>
+                            <td className="px-8 py-6">
+                               <Badge className="bg-muted border-border text-foreground text-[9px] font-black uppercase tracking-widest">
+                                  {item.kebutuhan}
+                               </Badge>
+                            </td>
+                            <td className="px-8 py-6 text-center">
+                               {item.status === 'Realized' ? (
+                                  <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[9px] font-black">SUKSES</Badge>
+                               ) : (
+                                  <Badge className="bg-orange-500/10 text-orange-500 border-orange-500/20 text-[9px] font-black">PENDING</Badge>
+                               )}
+                            </td>
+                            <td className="px-8 py-6 text-right">
+                                {item.status === 'Pending' ? (
+                                   <div className="flex justify-end items-center gap-2">
+                                      <button 
+                                        onClick={() => handleOpenRealisasi(item)}
+                                        className="p-3 bg-indigo-600/10 hover:bg-indigo-600 text-indigo-500 hover:text-white rounded-xl transition-all shadow-sm"
+                                        title="Realisasikan Belanja"
+                                      >
+                                         <ChevronRight size={18} />
+                                      </button>
+                                      <button 
+                                        onClick={() => handleDeletePurchasing(item)}
+                                        className="p-3 bg-rose-500/10 hover:bg-rose-600 text-rose-500 hover:text-white rounded-xl transition-all shadow-sm"
+                                        title="Hapus Pengajuan"
+                                      >
+                                         <Trash2 size={18} />
+                                      </button>
+                                   </div>
+                                ) : (
+                                   <div className="flex justify-end items-center gap-2">
+                                      <div className="flex items-center gap-1.5 text-emerald-500 font-bold text-xs uppercase tracking-wider mr-2">
+                                         <CheckCircle2 size={16} />
+                                         <span>Sukses</span>
+                                      </div>
+                                      <button 
+                                        onClick={() => handleOpenRealisasi(item)}
+                                        className="p-3 bg-emerald-500/10 hover:bg-emerald-600 text-emerald-500 hover:text-white rounded-xl transition-all shadow-sm"
+                                        title="Edit Realisasi"
+                                      >
+                                         <Edit size={16} />
+                                      </button>
+                                      <button 
+                                        onClick={() => handleResetPurchasing(item)}
+                                        className="p-3 bg-amber-500/10 hover:bg-amber-600 text-amber-500 hover:text-white rounded-xl transition-all shadow-sm"
+                                        title="Batalkan Realisasi (Kembali ke Pending)"
+                                      >
+                                         <RotateCcw size={16} />
+                                      </button>
+                                      <button 
+                                        onClick={() => handleDeletePurchasing(item)}
+                                        className="p-3 bg-rose-500/10 hover:bg-rose-600 text-rose-500 hover:text-white rounded-xl transition-all shadow-sm"
+                                        title="Hapus Pengajuan"
+                                      >
+                                         <Trash2 size={16} />
+                                      </button>
+                                   </div>
+                                )}
+                             </td>
+                         </TableRow>
+                      );
+                   })}
                 </TableBody>
              </Table>
           </Card>
@@ -270,15 +467,24 @@ export function Purchasing() {
                    </TableRow>
                 </TableHeader>
                 <TableBody>
-                   {realisasiItems.map((item, i) => (
-                      <TableRow key={i} className="border-border hover:bg-muted/10 transition-colors">
+                   {realisasiItems.map((item, i) => {
+                      const parsed = parseItems(item);
+                      return (
+                         <TableRow key={i} className="border-border hover:bg-muted/10 transition-colors">
                          <td className="px-8 py-6 text-xs font-mono font-medium text-muted-foreground">{item.tanggalPembelian}</td>
                          <td className="px-8 py-6">
-                            <p className="text-sm font-black text-foreground uppercase tracking-tight">{item.namaBarang}</p>
+                            <div className="space-y-1">
+                               {parsed.map((sub, idx) => (
+                                  <div key={idx} className="flex flex-col mb-2 last:mb-0 border-b border-border/10 pb-1 last:border-none">
+                                     <span className="text-sm font-black text-foreground uppercase tracking-tight">{sub.namaBarang}</span>
+                                     <span className="text-[10px] text-muted-foreground font-mono">Qty: {sub.jumlah} {sub.satuan} @ {formatCurrency(sub.estimasiHarga)}</span>
+                                  </div>
+                               ))}
+                            </div>
                             <p className="text-[10px] font-mono text-muted-foreground">RAB Ref: {item.id}</p>
                          </td>
-                         <td className="px-8 py-6 text-center text-sm font-black">{item.jumlah} {item.satuan}</td>
-                         <td className="px-8 py-6 text-right text-xs font-bold text-muted-foreground">{formatCurrency(item.hargaSatuan)}</td>
+                         <td className="px-8 py-6 text-center text-sm font-black">{parsed.length} Item</td>
+                         <td className="px-8 py-6 text-right text-xs font-bold text-muted-foreground">---</td>
                          <td className="px-8 py-6 text-right">
                             <div className="flex flex-col gap-0.5">
                                {item.biayaOngkir > 0 && <span className="text-[10px] text-orange-500 font-bold">🚛 {formatCurrency(item.biayaOngkir)}</span>}
@@ -302,7 +508,7 @@ export function Purchasing() {
                             </div>
                          </td>
                       </TableRow>
-                   ))}
+                    ); })}
                 </TableBody>
              </Table>
           </Card>
@@ -316,8 +522,19 @@ export function Purchasing() {
                    <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
                       <TrendingUp size={80} />
                    </div>
-                   <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.3em]">Total Pemasukan Dana</p>
-                   <h2 className="text-4xl font-black text-foreground">{formatCurrency(16855990)}</h2>
+                   <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.3em]">Total Pemasukan Dana (Edit Inline)</p>
+                   <div className="flex items-center gap-1">
+                      <span className="text-sm font-black text-foreground opacity-50">Rp</span>
+                      <input
+                        type="text"
+                        className="bg-transparent text-3xl font-black text-foreground focus:outline-none focus:ring-1 focus:ring-emerald-500/20 rounded-xl px-2 py-0.5 w-full"
+                        value={pemasukanDana === 0 ? '' : pemasukanDana.toLocaleString('id-ID')}
+                        onChange={e => {
+                           const val = e.target.value.replace(/\D/g, '');
+                           setPemasukanDana(val ? parseInt(val, 10) : 0);
+                        }}
+                      />
+                   </div>
                    <div className="flex items-center gap-2 text-[10px] font-black text-emerald-600 uppercase">
                       <CheckCircle2 size={14} /> Sinkron Dana RAB
                    </div>
@@ -339,7 +556,7 @@ export function Purchasing() {
                       <DollarSign size={80} />
                    </div>
                    <p className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.3em]">Sisa Dana RAB</p>
-                   <h2 className="text-4xl font-black text-foreground">{formatCurrency(16855990 - realisasiItems.reduce((acc, i) => acc + i.totalAkhir, 0))}</h2>
+                   <h2 className="text-4xl font-black text-foreground">{formatCurrency(pemasukanDana - realisasiItems.reduce((acc, i) => acc + i.totalAkhir, 0))}</h2>
                    <div className="flex items-center gap-2 text-[10px] font-black text-indigo-600 uppercase">
                       <AlertCircle size={14} /> Saldo Tersedia
                    </div>
@@ -365,7 +582,7 @@ export function Purchasing() {
                    <TableBody>
                       <TableRow className="border-border hover:bg-muted/10 font-black">
                          <td className="px-8 py-8 text-sm uppercase tracking-wider">Januari 2026</td>
-                         <td className="px-8 py-8 text-right text-indigo-500 border-x border-border/10">{formatCurrency(16855990)}</td>
+                         <td className="px-8 py-8 text-right text-indigo-500 border-x border-border/10">{formatCurrency(pemasukanDana)}</td>
                          <td className="px-8 py-8 text-right text-muted-foreground">
                            {formatCurrency(realisasiItems.filter(i => i.kategori === 'Fisik').reduce((acc, i) => acc + i.totalAkhir, 0))}
                          </td>
@@ -374,7 +591,7 @@ export function Purchasing() {
                          </td>
                          <td className="px-8 py-8 text-right text-rose-500">{formatCurrency(realisasiItems.reduce((acc, i) => acc + i.totalAkhir, 0))}</td>
                          <td className="px-8 py-8 text-right text-emerald-500 border-l border-border/10">
-                           {formatCurrency(16855990 - realisasiItems.reduce((acc, i) => acc + i.totalAkhir, 0))}
+                           {formatCurrency(pemasukanDana - realisasiItems.reduce((acc, i) => acc + i.totalAkhir, 0))}
                          </td>
                       </TableRow>
                       {[2,3,4,5,6].map(m => (
@@ -396,8 +613,8 @@ export function Purchasing() {
 
       {/* MODAL: INPUT PENGAJUAN RAB */}
       {isRABModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-300">
-           <Card className="w-full max-w-lg bg-card border-slate-800 shadow-2xl rounded-[3rem] overflow-hidden flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-300 overflow-y-auto">
+           <Card className="w-full max-w-lg bg-card border-slate-800 shadow-2xl rounded-[3rem] my-8">
               <div className="p-10 border-b border-border bg-muted/20 flex justify-between items-center">
                  <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500 border border-indigo-500/20">
@@ -452,50 +669,94 @@ export function Purchasing() {
                      </div>
                   </div>
 
-                 <div className="space-y-3">
-                    <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Nama Barang</label>
-                    <Input 
-                      placeholder="e.g. Solder Deko 60W" 
-                      className="h-14 border-border bg-muted/20 text-lg font-black uppercase rounded-2xl italic"
-                      value={newRAB.namaBarang}
-                      onChange={e => setNewRAB({...newRAB, namaBarang: e.target.value})}
-                      required
-                    />
-                 </div>
+                  <div className="space-y-4">
+                     <div className="flex justify-between items-center px-1">
+                        <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Daftar Barang Belanja ({itemsList.length})</label>
+                        <button
+                          type="button"
+                          onClick={() => setItemsList([...itemsList, { namaBarang: '', jumlah: 1, satuan: 'pcs', estimasiHarga: 0 }])}
+                          className="px-4 py-2 border border-indigo-500/20 bg-indigo-500/5 hover:bg-indigo-500/10 text-indigo-500 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all"
+                        >
+                           + Tambah Barang
+                        </button>
+                     </div>
 
-                 <div className="grid grid-cols-2 gap-8">
-                    <div className="space-y-3">
-                       <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Jumlah & Satuan</label>
-                       <div className="flex gap-2">
-                          <Input 
-                            type="number" 
-                            className="h-12 border-border bg-muted/20 font-black text-center rounded-xl flex-1 shadow-inner"
-                            value={newRAB.jumlah}
-                            onChange={e => setNewRAB({...newRAB, jumlah: parseInt(e.target.value) || 1})}
-                          />
-                          <Input 
-                            placeholder="pcs" 
-                            className="h-12 border-border bg-muted/20 font-bold rounded-xl w-24 text-center"
-                            value={newRAB.satuan}
-                            onChange={e => setNewRAB({...newRAB, satuan: e.target.value})}
-                          />
-                       </div>
-                    </div>
-                    <div className="space-y-3">
-                       <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Estimasi Harga Satuan</label>
-                       <Input 
-                         type="number" 
-                         className="h-12 border-border bg-muted/20 font-black rounded-xl shadow-inner pr-8"
-                         value={newRAB.estimasiHarga}
-                         onChange={e => setNewRAB({...newRAB, estimasiHarga: parseInt(e.target.value) || 0})}
-                       />
-                    </div>
-                 </div>
+                     <div className="space-y-4 max-h-[35vh] overflow-y-auto pr-2 custom-scrollbar">
+                        {itemsList.map((item, index) => (
+                           <div key={index} className="p-6 rounded-[1.5rem] border border-border/80 bg-muted/5 space-y-4 relative group">
+                              {itemsList.length > 1 && (
+                                 <button
+                                   type="button"
+                                   onClick={() => setItemsList(itemsList.filter((_, i) => i !== index))}
+                                   className="absolute top-4 right-4 text-rose-500 hover:text-rose-400 p-1 bg-rose-500/10 hover:bg-rose-500/20 rounded-lg transition-all"
+                                 >
+                                    <X size={14} />
+                                 </button>
+                              )}
+                              <div className="space-y-2">
+                                 <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest px-1">Nama Barang #{index + 1}</label>
+                                 <Input 
+                                   placeholder="e.g. Solder Deko 60W" 
+                                   className="h-11 border-border bg-muted/20 text-sm font-black uppercase rounded-lg italic"
+                                   value={item.namaBarang}
+                                   onChange={e => {
+                                      const newList = [...itemsList];
+                                      newList[index].namaBarang = e.target.value;
+                                      setItemsList(newList);
+                                   }}
+                                   required
+                                 />
+                              </div>
+                              <div className="grid grid-cols-3 gap-4">
+                                 <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest px-1">Jumlah</label>
+                                    <Input 
+                                      type="number" 
+                                      className="h-10 border-border bg-muted/20 font-black text-center rounded-lg"
+                                      value={item.jumlah}
+                                      onChange={e => {
+                                         const newList = [...itemsList];
+                                         newList[index].jumlah = parseInt(e.target.value) || 1;
+                                         setItemsList(newList);
+                                      }}
+                                    />
+                                 </div>
+                                 <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest px-1">Satuan</label>
+                                    <Input 
+                                      placeholder="pcs" 
+                                      className="h-10 border-border bg-muted/20 font-bold rounded-lg text-center"
+                                      value={item.satuan}
+                                      onChange={e => {
+                                         const newList = [...itemsList];
+                                         newList[index].satuan = e.target.value;
+                                         setItemsList(newList);
+                                      }}
+                                    />
+                                 </div>
+                                 <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest px-1">Harga Est.</label>
+                                    <Input 
+                                      type="number" 
+                                      className="h-10 border-border bg-muted/20 font-black rounded-lg text-right pr-2"
+                                      value={item.estimasiHarga}
+                                      onChange={e => {
+                                         const newList = [...itemsList];
+                                         newList[index].estimasiHarga = parseInt(e.target.value) || 0;
+                                         setItemsList(newList);
+                                      }}
+                                    />
+                                 </div>
+                              </div>
+                           </div>
+                        ))}
+                     </div>
+                  </div>
 
-                 <div className="p-6 rounded-[2rem] bg-indigo-500/5 border border-indigo-500/10 text-center">
-                    <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-2">Total Estimasi Anggaran</p>
-                    <p className="text-3xl font-black text-foreground italic">{formatCurrency(newRAB.jumlah * newRAB.estimasiHarga)}</p>
-                 </div>
+                  <div className="p-6 rounded-[2rem] bg-indigo-500/5 border border-indigo-500/10 text-center">
+                     <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-2">Total Estimasi Anggaran</p>
+                     <p className="text-3xl font-black text-foreground italic">{formatCurrency(itemsList.reduce((sum, item) => sum + (item.jumlah * item.estimasiHarga), 0))}</p>
+                  </div>
 
                  <div className="flex gap-4 pt-4">
                     <button 
@@ -519,8 +780,8 @@ export function Purchasing() {
 
       {/* MODAL: REALISASI PEMBELANJAAN */}
       {isRealisasiModalOpen && selectedRAB && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-300">
-           <Card className="w-full max-w-2xl bg-card border-slate-800 shadow-2xl rounded-[3rem] overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-300 overflow-y-auto">
+           <Card className="w-full max-w-2xl bg-card border-slate-800 shadow-2xl rounded-[3rem] my-8">
               <div className="p-10 border-b border-border bg-muted/20 flex justify-between items-center">
                  <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20">
@@ -536,7 +797,7 @@ export function Purchasing() {
                  </button>
               </div>
 
-              <form onSubmit={handleSaveRealisasi} className="flex-1 overflow-y-auto p-10 space-y-8 custom-scrollbar">
+              <form onSubmit={handleSaveRealisasi} className="p-10 space-y-8">
                  <div className="grid grid-cols-2 gap-8">
                     <div className="space-y-3">
                        <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Tanggal Pembelian</label>
@@ -560,49 +821,70 @@ export function Purchasing() {
                     </div>
                  </div>
 
-                 <div className="space-y-3">
-                    <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Nama Barang</label>
-                    <Input 
-                      placeholder="Nama barang..." 
-                      className="h-14 border-border bg-muted/20 text-lg font-black uppercase rounded-2xl italic"
-                      value={newReal.namaBarang}
-                      onChange={e => setNewReal({...newReal, namaBarang: e.target.value})}
-                      required
-                    />
-                 </div>
-
-                 <div className="grid grid-cols-3 gap-8">
-                    <div className="space-y-3">
-                       <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Harga Satuan Aktual</label>
-                       <Input 
-                         type="number" 
-                         className="h-14 border-border bg-muted/20 text-lg font-black rounded-2xl shadow-inner focus:ring-2 focus:ring-emerald-500"
-                         value={newReal.hargaSatuan}
-                         onChange={e => setNewReal({...newReal, hargaSatuan: parseInt(e.target.value) || 0})}
-                         required
-                       />
-                    </div>
-                    <div className="space-y-3">
-                       <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Jumlah</label>
-                       <Input 
-                         type="number" 
-                         className="h-14 border-border bg-muted/20 text-lg font-black rounded-2xl text-center shadow-inner"
-                         value={newReal.jumlah}
-                         onChange={e => setNewReal({...newReal, jumlah: parseInt(e.target.value) || 1})}
-                         required
-                       />
-                    </div>
-                    <div className="space-y-3">
-                       <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Satuan</label>
-                       <Input 
-                         placeholder="pcs" 
-                         className="h-14 border-border bg-muted/20 text-lg font-black rounded-2xl text-center shadow-inner"
-                         value={newReal.satuan}
-                         onChange={e => setNewReal({...newReal, satuan: e.target.value})}
-                         required
-                       />
-                    </div>
-                 </div>
+                  <div className="space-y-4">
+                     <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Daftar Barang Realisasi ({realItemsList.length})</label>
+                     <div className="space-y-4 max-h-[35vh] overflow-y-auto pr-2 custom-scrollbar">
+                        {realItemsList.map((item, index) => (
+                           <div key={index} className="p-6 rounded-[1.5rem] border border-border/80 bg-muted/5 space-y-4 relative group">
+                              <div className="space-y-2">
+                                 <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest px-1">Nama Barang #{index + 1}</label>
+                                 <Input 
+                                   placeholder="Nama barang..." 
+                                   className="h-11 border-border bg-muted/20 text-sm font-black uppercase rounded-lg italic"
+                                   value={item.namaBarang}
+                                   onChange={e => {
+                                      const newList = [...realItemsList];
+                                      newList[index].namaBarang = e.target.value;
+                                      setRealItemsList(newList);
+                                   }}
+                                   required
+                                 />
+                              </div>
+                              <div className="grid grid-cols-3 gap-4">
+                                 <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest px-1">Qty Aktual</label>
+                                    <Input 
+                                      type="number" 
+                                      className="h-10 border-border bg-muted/20 font-black text-center rounded-lg"
+                                      value={item.jumlah}
+                                      onChange={e => {
+                                         const newList = [...realItemsList];
+                                         newList[index].jumlah = parseInt(e.target.value) || 1;
+                                         setRealItemsList(newList);
+                                      }}
+                                    />
+                                 </div>
+                                 <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest px-1">Satuan</label>
+                                    <Input 
+                                      placeholder="pcs" 
+                                      className="h-10 border-border bg-muted/20 font-bold rounded-lg text-center"
+                                      value={item.satuan}
+                                      onChange={e => {
+                                         const newList = [...realItemsList];
+                                         newList[index].satuan = e.target.value;
+                                         setRealItemsList(newList);
+                                      }}
+                                    />
+                                 </div>
+                                 <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest px-1">Harga Satuan</label>
+                                    <Input 
+                                      type="number" 
+                                      className="h-10 border-border bg-muted/20 font-black rounded-lg text-right pr-2"
+                                      value={item.estimasiHarga}
+                                      onChange={e => {
+                                         const newList = [...realItemsList];
+                                         newList[index].estimasiHarga = parseInt(e.target.value) || 0;
+                                         setRealItemsList(newList);
+                                      }}
+                                    />
+                                 </div>
+                              </div>
+                           </div>
+                        ))}
+                     </div>
+                  </div>
 
                  <div className="grid grid-cols-3 gap-6">
                     <div className="space-y-3">
@@ -663,21 +945,21 @@ export function Purchasing() {
                     </div>
                  </div>
 
-                 <div className="p-8 rounded-[2.5rem] bg-emerald-500/5 border border-emerald-500/10 flex flex-col items-center gap-2">
-                    <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.3em]">Total Akhir Realisasi</p>
-                    <p className="text-4xl font-black text-foreground italic">
-                       {formatCurrency(((newReal.jumlah || 1) * (newReal.hargaSatuan || 0)) + (newReal.biayaLayanan || 0) + (newReal.biayaOngkir || 0) - (newReal.diskon || 0))}
-                    </p>
-                    <div className="mt-2 flex items-center gap-3">
-                        <div className="text-[9px] font-bold text-muted-foreground flex items-center gap-1">
-                           <Calculator size={10} /> Subtotal: {formatCurrency((newReal.jumlah || 1) * (newReal.hargaSatuan || 0))}
-                        </div>
-                        <div className="text-[9px] font-bold text-muted-foreground/30">|</div>
-                        <div className="text-[9px] font-bold text-rose-400 flex items-center gap-1">
-                           <TrendingUp size={10} /> Fees: {formatCurrency((newReal.biayaLayanan || 0) + (newReal.biayaOngkir || 0))}
-                        </div>
-                    </div>
-                 </div>
+                  <div className="p-8 rounded-[2.5rem] bg-emerald-500/5 border border-emerald-500/10 flex flex-col items-center gap-2">
+                     <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.3em]">Total Akhir Realisasi</p>
+                     <p className="text-4xl font-black text-foreground italic">
+                        {formatCurrency(getRealisasiTotal())}
+                     </p>
+                     <div className="mt-2 flex items-center gap-3">
+                         <div className="text-[9px] font-bold text-muted-foreground flex items-center gap-1">
+                            <Calculator size={10} /> Subtotal: {formatCurrency(getRealisasiSubtotal())}
+                         </div>
+                         <div className="text-[9px] font-bold text-muted-foreground/30">|</div>
+                         <div className="text-[9px] font-bold text-rose-400 flex items-center gap-1">
+                            <TrendingUp size={10} /> Fees: {formatCurrency((newReal.biayaLayanan || 0) + (newReal.biayaOngkir || 0))}
+                         </div>
+                     </div>
+                  </div>
 
                  <div className="flex gap-4 pt-4">
                     <button 

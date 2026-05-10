@@ -264,8 +264,8 @@ export function Maintenance() {
 
       {/* New Maintenance Schedule Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <Card className="w-full max-w-xl bg-card border-border shadow-[0_20px_50px_rgba(0,0,0,0.3)] p-0 overflow-hidden animate-in zoom-in-95 rounded-[2.5rem]">
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <Card className="w-full max-w-xl bg-card border-border shadow-[0_20px_50px_rgba(0,0,0,0.3)] p-0 overflow-hidden animate-in zoom-in-95 rounded-[2.5rem] my-8">
             <div className="p-8 border-b border-border flex justify-between items-center bg-muted/20 px-10">
               <div className="flex items-center gap-3 text-primary">
                 <Wrench size={24} />

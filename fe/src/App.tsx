@@ -4,6 +4,10 @@ import { ThemeProvider } from './app/context/ThemeContext';
 import { RootLayout } from './app/components/layout/RootLayout';
 import { Dashboard as DashboardPusat } from './app/pages/pusat/Dashboard';
 import { DashboardCabang } from './app/pages/cabang/DashboardCabang';
+import { DashboardPrepare } from './app/pages/prepare/DashboardPrepare';
+import { PrepareRequest } from './app/pages/prepare/PrepareRequest';
+import { PrepareDistribute } from './app/pages/prepare/PrepareDistribute';
+import { PrepareAdminManage } from './app/pages/pusat/PrepareAdminManage';
 import { Inventory } from './app/pages/shared/Inventory';
 import { ComponentDetail } from './app/page/ComponentDetail';
 import { MaintenanceDetail } from './app/page/MaintenanceDetail';
@@ -15,6 +19,7 @@ import { PinjamForm } from './app/page/PinjamForm';
 import { WarehouseMap } from './app/page/WarehouseMap';
 import { ProfileSettings } from './app/components/profile/ProfileSettings';
 import { RobotHPP } from './app/page/RobotHPP';
+import { Vendor } from './app/page/Vendor';
 import { Purchasing } from './app/page/Purchasing';
 import { ManajemenCabang } from './app/pages/pusat/ManajemenCabang';
 import { AuditTrail } from './app/page/AuditTrail';
@@ -28,6 +33,7 @@ export default function App() {
   const userStr = localStorage.getItem('user');
   const user = userStr ? JSON.parse(userStr) : null;
   const isSuperAdmin = user?.role === 'super_admin' || user?.email === 'admin@robogudang.com';
+  const isPrepare = user?.role === 'prepare';
 
   // Listen for storage changes (optional, but good for multi-tab)
   useEffect(() => {
@@ -54,7 +60,19 @@ export default function App() {
           
           <Route path="/" element={isAuthenticated ? <RootLayout /> : <Navigate to="/login" replace />}>
             <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="dashboard" element={isSuperAdmin ? <DashboardPusat /> : <DashboardCabang />} />
+            <Route path="dashboard" element={
+              isSuperAdmin ? <DashboardPusat /> : (isPrepare ? <DashboardPrepare /> : <DashboardCabang />)
+            } />
+            
+            {/* Prepare Module Routes */}
+            {isPrepare && (
+              <>
+                <Route path="prepare/request" element={<PrepareRequest />} />
+                <Route path="prepare/distribute" element={<PrepareDistribute />} />
+              </>
+            )}
+
+            {/* Common Routes & Admin Management */}
             <Route path="inventory" element={<Inventory />} />
             <Route path="inventory/:id" element={<ComponentDetail />} />
             <Route path="maintenance" element={<Maintenance />} />
@@ -63,10 +81,12 @@ export default function App() {
             <Route path="transactions" element={<Transactions />} />
             <Route path="peminjaman" element={<Peminjaman />} />
             <Route path="warehouse-map" element={<WarehouseMap />} />
-            <Route path="production-cost" element={<RobotHPP />} />
-            <Route path="purchasing" element={<Purchasing />} />
+            <Route path="production-cost" element={isSuperAdmin ? <RobotHPP /> : <Navigate to="/dashboard" replace />} />
+            <Route path="purchasing" element={isSuperAdmin ? <Purchasing /> : <Navigate to="/dashboard" replace />} />
+            <Route path="vendors" element={isSuperAdmin ? <Vendor /> : <Navigate to="/dashboard" replace />} />
             <Route path="profile-settings" element={<ProfileSettings />} />
             <Route path="manajemen-cabang" element={<ManajemenCabang />} />
+            <Route path="manajemen-prepare" element={isSuperAdmin ? <PrepareAdminManage /> : <Navigate to="/dashboard" replace />} />
             <Route path="audit-log" element={<AuditTrail />} />
             <Route path="distribution" element={<Distribution />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />

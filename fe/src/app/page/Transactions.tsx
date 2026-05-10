@@ -87,7 +87,10 @@ export function Transactions() {
       inventory_id: parseInt(newTxn.inventory_id),
       type: newTxn.type,
       quantity: newTxn.quantity,
-      reason: newTxn.type === 'Masuk' ? newTxn.vendor : newTxn.recipient
+      reason: newTxn.type === 'Masuk' ? newTxn.vendor : newTxn.recipient,
+      target: newTxn.target,
+      status: newTxn.status,
+      location: newTxn.location
     };
 
     try {
@@ -99,10 +102,22 @@ export function Transactions() {
       if (res.ok) {
         fetchTransactions();
         setIsModalOpen(false);
-        // We don't show real ID yet here but can fetch it if needed for the nota
-        // For now just refresh
+        setNewTxn({
+          type: 'Masuk',
+          inventory_id: '',
+          quantity: 1,
+          vendor: '',
+          recipient: '',
+          target: 'Gudang',
+          location: '',
+          status: 'Selesai'
+        });
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        alert(`Gagal menyimpan transaksi: ${errorData.error || res.statusText || 'Error server'}`);
       }
-    } catch (err) {
+    } catch (err: any) {
+      alert(`Error koneksi: ${err.message || err}`);
       console.error("Save error:", err);
     }
   };
@@ -290,8 +305,8 @@ export function Transactions() {
 
       {/* Add Transaction Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <Card className="w-full max-w-md bg-card border-border shadow-2xl p-0 overflow-hidden animate-in zoom-in-95 rounded-[2rem]">
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <Card className="w-full max-w-md bg-card border-border shadow-2xl p-0 overflow-hidden animate-in zoom-in-95 rounded-[2rem] my-8">
             <div className="p-8 border-b border-border flex justify-between items-center bg-muted/20">
               <h2 className="text-xl font-black text-foreground uppercase tracking-tight">
                 {newTxn.type === 'Masuk' ? 'Input Barang Masuk' : `Kirim ke ${newTxn.target}`}
@@ -390,15 +405,17 @@ export function Transactions() {
 
       {/* Nota Barang Modal */}
       {showNota && lastTxn && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-300">
-           <Card className="w-full max-w-lg bg-white text-slate-900 shadow-2xl overflow-hidden rounded-[2.5rem] p-0 border-none animate-in zoom-in-95">
+        <div className="fixed inset-0 z-[60] flex items-start justify-center p-4 overflow-y-auto bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-300">
+           <Card className="w-full max-w-lg bg-white text-slate-900 shadow-2xl overflow-hidden rounded-[2.5rem] p-0 border-none animate-in zoom-in-95 my-8">
               <div className="bg-slate-900 p-10 text-white flex justify-between items-start">
                   <div>
                     <div className="flex items-center gap-2 mb-2">
                        <CheckCircle2 className="text-emerald-400" size={24} />
                        <h2 className="text-2xl font-black uppercase tracking-tighter italic">RoboEdu</h2>
                     </div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">SURAT JALAN / NOTA BARANG</p>
+                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                       {lastTxn.type === 'Masuk' ? 'SURAT MASUK / NOTA BARANG' : 'SURAT JALAN / NOTA BARANG'}
+                     </p>
                   </div>
                   <div className="text-right">
                     <p className="text-[10px] font-black text-slate-500 uppercase">No. Transaksi</p>
@@ -409,11 +426,15 @@ export function Transactions() {
               <div className="p-12 space-y-10">
                   <div className="flex justify-between items-end border-b pb-8 border-slate-100">
                       <div className="space-y-1">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Petugas Logistik</p>
-                        <p className="font-black text-lg">Logistik RoboEdu</p>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                          {lastTxn.type === 'Masuk' ? 'Petugas Penerima' : 'Petugas Logistik'}
+                        </p>
+                        <p className="font-black text-lg">{user?.full_name || 'Logistik RoboEdu'}</p>
                       </div>
                       <div className="text-right space-y-1">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Tanggal Keluar</p>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                          {lastTxn.type === 'Masuk' ? 'Tanggal Masuk' : 'Tanggal Keluar'}
+                        </p>
                         <p className="font-bold">{lastTxn.date}</p>
                       </div>
                   </div>
@@ -432,20 +453,28 @@ export function Transactions() {
                   </div>
 
                   <div className="bg-slate-50 p-6 rounded-2xl space-y-2">
-                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Ditujukan Kepada ({lastTxn.target})</p>
+                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                          {lastTxn.type === 'Masuk' ? 'Diterima Dari (Vendor)' : `Ditujukan Kepada (${lastTxn.target})`}
+                       </p>
                        <p className="font-black text-indigo-600 text-xl">{lastTxn.recipient || lastTxn.vendor}</p>
                   </div>
 
                   <div className="pt-6 grid grid-cols-2 gap-12">
                       <div className="space-y-12">
-                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-center">Pengirim</p>
+                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-center">
+                            {lastTxn.type === 'Masuk' ? 'Pihak Vendor' : 'Petugas Pengirim'}
+                         </p>
                          <div className="border-b border-slate-200 w-full h-px"></div>
                          <p className="text-[10px] font-bold text-center text-slate-300 italic pt-2">Tanda Tangan & Nama Terang</p>
                       </div>
                       <div className="space-y-12">
-                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-center">Penerima</p>
+                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-center">
+                            {lastTxn.type === 'Masuk' ? 'Petugas Penerima' : 'Penerima Barang'}
+                         </p>
                          <div className="border-b border-slate-200 w-full h-px"></div>
-                         <p className="text-[10px] font-bold text-center text-slate-300 italic pt-2">{lastTxn.recipient || lastTxn.vendor}</p>
+                         <p className="text-[10px] font-bold text-center text-slate-300 italic pt-2">
+                            {lastTxn.type === 'Masuk' ? (user?.full_name || 'Petugas Penerima') : (lastTxn.recipient || lastTxn.vendor)}
+                         </p>
                       </div>
                   </div>
 

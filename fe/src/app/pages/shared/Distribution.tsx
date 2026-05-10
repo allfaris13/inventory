@@ -52,9 +52,12 @@ export function Distribution() {
   const fetchData = async () => {
     setLoading(true);
     try {
+      const distFilter = !isSuperAdmin ? `?branch_id=${user.branch_id}` : '';
+      const invFilter = !isSuperAdmin ? `?branch_id=${user.branch_id}` : '';
+      
       const [rRes, iRes] = await Promise.all([
-        fetch('/api/distribution'),
-        fetch('/api/inventory')
+        fetch(`/api/distribution${distFilter}`),
+        fetch(`/api/inventory${invFilter}`)
       ]);
 
       if (!rRes.ok || !iRes.ok) {

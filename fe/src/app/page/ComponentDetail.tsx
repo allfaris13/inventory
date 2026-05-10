@@ -20,6 +20,9 @@ export function ComponentDetail() {
         if (Array.isArray(data)) {
           const found = data.find((item: any) => item.id.toString() === id);
           if (found) {
+            const rawPrice = found.unitPrice ? parseInt(found.unitPrice.replace(/\D/g, '')) || 0 : 0;
+            const computedTotal = `Rp ${(rawPrice * found.stock).toLocaleString('id-ID')}`;
+
             setComponent({
               sku: `INV-${found.id}`,
               name: found.name,
@@ -27,15 +30,15 @@ export function ComponentDetail() {
               condition: found.status || "Baru",
               stock: found.stock,
               maxStock: 100,
-              location: found.location,
+              location: found.location || "-",
               supplier: found.supplier || "Vendor Utama",
               unitPrice: found.unitPrice || "Rp 0",
-              totalValue: "Rp 0", // Can be calculated if price is parsed
+              totalValue: computedTotal,
               lastRestocked: "-",
-              specifications: found.specifications || {
+              specifications: typeof found.specifications === 'string' ? JSON.parse(found.specifications) : (found.specifications && Object.keys(found.specifications).length > 0 ? found.specifications : {
                 "Tipe": found.category,
-                "Lokasi": found.location
-              },
+                "Lokasi": found.location || "-"
+              }),
               movements: []
             });
           }
